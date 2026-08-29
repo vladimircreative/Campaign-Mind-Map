@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prep Map — local mind map for GMs</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='none' stroke='%232a241c' stroke-width='1.4'/%3E%3Ccircle cx='8' cy='8' r='1.6' fill='%232a241c'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="narrow-warning">
+    <p>Prep Map is a desktop canvas. Open this page in a wider window.</p>
+  </div>
+
+  <div id="app">
+    <div id="viewport" tabindex="0">
+      <div id="world">
+        <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="nodes"></div>
+        <svg id="overlay" xmlns="http://www.w3.org/2000/svg">
+          <line id="rubber" class="rubber" x1="0" y1="0" x2="0" y2="0" hidden />
+        </svg>
+      </div>
+    </div>
+
+    <aside id="inspector" class="inspector" hidden>
+      <button type="button" class="inspector-close" id="inspector-close" title="Close" aria-label="Close inspector">×</button>
+      <header class="inspector-head">
+        <input id="insp-title" class="inspector-title" type="text" maxlength="80" placeholder="Name" />
+      </header>
+
+      <label class="field-label" for="insp-type">Type</label>
+      <div class="type-row">
+        <select id="insp-type"></select>
+        <span id="insp-kind" class="kind-pill"></span>
+      </div>
+
+      <label class="field-label">Linked</label>
+      <ul id="insp-links" class="link-list"></ul>
+
+      <label class="field-label" for="insp-tag-input">Tags</label>
+      <div class="tag-editor">
+        <div id="insp-tags" class="tag-chips"></div>
+        <input id="insp-tag-input" type="text" maxlength="32" placeholder="Add tag and press Enter" />
+      </div>
+
+      <label class="field-label" for="insp-desc">Notes</label>
+      <textarea id="insp-desc" class="ruled" rows="8" placeholder="What the table needs to know…"></textarea>
+
+      <div class="inspector-actions">
+        <button type="button" id="insp-delete" class="btn-danger">Delete</button>
+      </div>
+    </aside>
+
+    <aside id="rail" class="rail">
+      <div class="rail-clip" aria-hidden="true"></div>
+      <header class="rail-head">
+        <div class="wordmark">Prep Map</div>
+        <div class="wordmark-sub">saved in this browser</div>
+      </header>
+      <div id="tag-list" class="tag-list">
+        <p class="rail-empty">No tags yet. Add them in a node’s notes panel.</p>
+      </div>
+      <footer class="rail-foot">
+        <button type="button" id="btn-export" title="Download JSON">Export</button>
+        <button type="button" id="btn-import" title="Open JSON">Import</button>
+        <button type="button" id="btn-clear" title="Clear this map">Clear</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden />
+      </footer>
+    </aside>
+
+    <div id="history-bar" class="history-bar">
+      <button type="button" id="btn-undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+      <button type="button" id="btn-redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
+    </div>
+    <div id="toast" class="toast" hidden></div>
+    <div id="hint" class="hint">
+      Double-click the page to add a node. Click a ring to draw a link. Click a line to drop a subnode.
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
