@@ -1,181 +1,143 @@
 # Prep Map
 
-A one-page, desktop-only mind map for TTRPG GMs. Nothing is sent to a server. The board lives in this browser (IndexedDB, with a localStorage fallback) and comes back when you reopen the tab.
+A sheet of paper for campaign prep. Characters, places, events, the thread you planted three sessions ago and forgot. Desktop browser, wide window. Nothing leaves the machine — close the tab, open it next week, the board is still there.
 
-Use a window at least ~1100px wide. There is no mobile layout.
+Phone will just tell you to use a bigger screen. That’s on purpose.
 
-## Open it
+## Get in
 
-- Double-click `index.html`, or
-- Serve the folder as static files (GitHub Pages, Netlify, or `python3 -m http.server`).
+Double-click `index.html`. Or dump the folder on GitHub Pages / Netlify / `python3 -m http.server` if you want a URL.
 
-Optional URL flags:
+Click **Prep Map** at the top of the right rail and name the campaign. Export uses that name.
 
-- `?demo=1` — load a sample raid-on-the-salt-road board (useful after Clear).
-- `?select=<node-id>` — open that node’s inspector after load.
-
-Export JSON from the right rail if you switch browsers or machines.
+After a Clear, `?demo=1` on the URL loads a sample board so you can poke at it.
 
 ---
 
-## Canvas
+## The table
 
-An almost endless sheet of paper. Zoom with the mouse wheel (toward the cursor).
+Wheel zooms toward the cursor. Left-drag on empty paper draws a selection box. Pan with middle-mouse, right-mouse, or hold **Space** and drag.
 
-| Action | How |
-|---|---|
-| Pan | Middle-drag, right-drag, or hold **Space** and drag |
-| Select several nodes | Drag empty paper (marquee). **Shift-drag** adds to the selection |
-| Frame everything on the current page | **Fit** button or **F** |
-| Navigator (top right) | Click or drag to jump. The orange box is the current view and shrinks as you zoom in. Every node on the current page is fitted into that map, including strays. |
-| Deselect / cancel a link | **Esc**, or a click that does not move |
+**F** or the Fit button frames whatever is on the current page. Switching pages does that for you.
 
-New nodes created on a session page stay on that page. **All pages** shows the whole campaign.
+Top-right is a tiny navigator. Dots are nodes, orange box is what you’re looking at. Click or drag it when someone wandered off the edge of the map.
+
+**Esc** drops a half-drawn link or a selection.
 
 ---
 
 ## Nodes
 
+Double-click empty paper. That’s a node. Drag the middle to move it. Click it to open the notes sheet. Double-click it to rename.
+
 Two sizes:
 
-- **Node** — large disc. Type icon, title, and (for characters) a condition mark in front of the name.
-- **Subnode** — small ellipse. Title only. Dropped onto a link, or created as a normal node and linked by hand.
+- Big disc — person, place, event, faction, note. Colour follows the type.
+- Small ellipse — a beat on a line. Title only. Click a link to drop one.
 
-**Types:** Character, Location, Event, Faction, Note. Type tints the fill and the border.
+New nodes shove neighbours a little so they don’t sit on top of each other. Grab several at once (drag a box) and they move as a pack.
 
-**Double-click** empty paper to create a node. **Double-click** a node to jump into its name field.
+### What the colours mean (thread)
 
-Drag a node’s body to move it. If several nodes are selected, dragging any of them moves the group.
+This is “is this still in play?”, not “is this NPC dead”.
 
-Nodes give each other a little space when a new one is dropped too close.
+- **Live** — still in the stew.
+- **Resolved** — grey, name crossed out. Use **Close thread** if you want it on the board but done.
+- **Missed** — gold. The fork the table didn’t take. Leave it; you’ll thank yourself at the finale.
+- **Rumor** — dashed and hatched. You heard it. You don’t know it.
+- **Ghost** — empty dashed ring. A name nobody will say.
 
-### Thread (status)
+### People
 
-Thread is the colour language of the disc:
+Characters get a mark in front of the name. The disc colour does not change.
 
-| Thread | Look |
-|---|---|
-| Live | Type colour, solid ring |
-| Resolved | Grey wash, title struck through. Use **Close thread** to get here without deleting |
-| Missed | Gold fill — a path the table did not take |
-| Rumor | Dashed ring and hatch |
-| Ghost | Empty dashed ring — a name nobody will say |
-
-### Condition (characters only)
-
-Condition does **not** recolour the disc. It is a small mark in front of the name (on the node, in the hover card, and beside the inspector title):
-
-| Mark | Meaning |
-|---|---|
-| Heart | Alive |
-| ? | Missing |
-| Warning | Compromised |
-| Skull | Dead |
+Heart = alive. **?** = missing. Warning = compromised. Skull = dead.
 
 ---
 
 ## Links
 
-| Action | How |
-|---|---|
-| Start a link | Drag the **ring** of node A onto node B |
-| Link shortcut | Select A, **Shift-click** B |
-| Planted (dashed) link | Hold **Alt** while linking, or **Alt-click** an existing line |
-| Cancel | **Esc**, or click empty paper |
-| Drop a subnode on a line | Click the line |
-| Delete a line | **Shift-click** the line |
+Grab the **ring** of A and drop it on B. Or select A and Shift-click B.
 
-Planted links are the “I seeded this, it has not happened yet” kind of support.
+Hold **Alt** while you do that (or Alt-click a line later) for a dashed “I planted this, it hasn’t fired” link.
+
+Click a line to drop a subnode on it. Shift-click a line to delete it. Esc cancels a link you started and thought better of.
 
 ---
 
-## Inspector
+## The notes sheet
 
-Click a node body to open the sheet in the bottom-left.
+Bottom left, after you click a node.
 
-- Title, type, thread, condition (characters), linked neighbours, tags, notes.
-- Neighbour names jump the camera to that node.
-- Tags: type a word and press **Enter**. Click × on a chip to drop it.
-- Notes use faint ruled lines that scroll with the text. Stretch the field and the sheet grows up toward the toolbar; a scrollbar appears only after that.
-- **Delete** removes the current selection (one node or many).
+Name, type, thread, condition, who it’s tied to, tags, notes. Click a linked name to jump there. Tags: type, Enter. Stretch Notes and the sheet grows up toward the toolbar before it starts scrolling.
 
-Hover a node (after a short pause) for a title + excerpt card. The card appears under the cursor, not at the last place it was.
+Hover a node for a second and you get the first line of notes under the cursor.
+
+Delete in that sheet kills the whole selection, not just one node.
 
 ---
 
-## Pages
+## Sessions
 
-The right rail lists session pages.
+Right rail, Pages.
 
-- Click a name to show only that page.
-- **All pages** shows everything.
-- **+** starts a new empty session and switches to it.
-- Pencil renames. Clicking the name never opens rename.
-- **×** deletes the page **and every node that lived on it** (Undo brings both back). The last page cannot be deleted.
+Each session is its own sheet. **All pages** is the whole campaign. **+** is a new session (empty, already framed). Pencil renames. Clicking the name just switches — it will not start a rename by accident.
 
-Paste lands on the page you are looking at. If you are on **All pages**, paste uses the first session.
+**×** deletes that session **and everything that lived on it**. Undo if you flinch. You can’t delete the last page.
 
 ---
 
 ## Tags
 
-Tags live on the node and are indexed in the rail.
+Stick `#raiders` on whoever deserves it. The rail lists them.
 
-- Click a node name under a tag to focus it and open the inspector.
-- Click the `#TAG` header to highlight every member and dim the rest.
-
----
-
-## Copy and paste
-
-Select with a marquee (or click). **Ctrl+C** copies the selection and the links *between* those nodes. **Ctrl+X** cuts (copy, then delete). **Ctrl+V** pastes a copy, offset a little, onto the current page. Paste again to stack further copies. Undo works.
+Click a name under a tag to jump there. Click the `#RAIDERS` header to light the whole gang up and dim the rest.
 
 ---
 
-## Persistence
+## Steal from yourself
 
-Every change writes to IndexedDB (or localStorage if IndexedDB is unavailable). Close the tab, open it later — the same board is there.
+Box-select (or click).
 
-| Button | What it does |
+- **Ctrl+C** copy
+- **Ctrl+X** cut
+- **Ctrl+V** paste — group lands with its center under the cursor, on the page you’re looking at. Point at Session 2, paste, they’ve moved house.
+
+Links between the copied nodes come along. Links out to the rest of the board do not.
+
+---
+
+## Don’t lose the campaign
+
+Every click saves in this browser. That’s it. No account.
+
+**Export** downloads a JSON named after the map. Put it next to the campaign doc. **Import** replaces whatever is open (old files still load). **Clear** wipes the board; Undo will not bring a Clear back, so Export first if it’s been a long night.
+
+Switch computers? Export on this one, Import on that one.
+
+---
+
+## Keys you’ll actually use
+
+| | |
 |---|---|
-| Title | Click **Prep Map** in the rail to rename the campaign. That name is the Export filename. |
-| Export | Download a JSON snapshot named after the map |
-| Import | Replace the board with a JSON file (v1 files are migrated) |
-| Clear | Empty the board. Undo will not resurrect a cleared map; Export first if you care |
+| **Ctrl+Z** / **Ctrl+Y** | undo / redo |
+| **Ctrl+C X V** | copy / cut / paste |
+| **Delete** | selection gone |
+| **F** | frame this page |
+| **Esc** | stop that |
+| **?** | the cheat sheet |
+| **Space + drag** | pan |
+| Double-click paper | new node |
+| Double-click a node | rename |
+
+If you’re typing in a field, the keys stay with the field.
+
+Top-left buttons: Undo, Redo, Fit, ?.
 
 ---
 
-## Keybindings
-
-| Key | Action |
-|---|---|
-| **Ctrl+Z** | Undo |
-| **Ctrl+Y** or **Ctrl+Shift+Z** | Redo |
-| **Ctrl+C** / **Ctrl+X** / **Ctrl+V** | Copy / cut / paste selection |
-| **Delete** / **Backspace** | Delete selection |
-| **F** | Fit all visible nodes |
-| **Esc** | Cancel link, close help, or deselect |
-| **?** | Toggle the shortcut card |
-| **Space** (hold) + drag | Pan |
-| Double-click empty paper | New node |
-| Double-click a node | Edit title |
-
-Typing in a field eats the keys; shortcuts stay off until you leave the field.
-
-Toolbar, top-left: **Undo**, **Redo**, **Fit**, **?**.
-
----
-
-## Files
-
-```
-index.html
-styles.css
-app.js
-README.md
-```
-
-No build step. No accounts. No cloud.
+Four files: `index.html`, `styles.css`, `app.js`, this. No install, no login, no cloud.
 
 ---
 
