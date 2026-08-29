@@ -2032,11 +2032,11 @@
   }
 
   function loadStory(step) {
-    step = Math.max(1, Math.min(7, Number(step) || 1));
+    step = Math.max(1, Math.min(8, Number(step) || 1));
     const session1 = { id: "page-s1", title: "Session 1" };
     const session2 = { id: "page-s2", title: "Session 2" };
     state.pages = step >= 6 ? [session1, session2] : [session1];
-    state.currentPageId = step === 6 ? session2.id : step === 7 ? "all" : session1.id;
+    state.currentPageId = step === 6 ? session2.id : step >= 7 ? "all" : session1.id;
     state.nodes = {};
     state.edges = {};
     state.selectedId = null;
@@ -2106,7 +2106,15 @@
         description: "She saw the third horse. They never stopped.",
       });
       e("ambush", "burn");
-      e("ambush", "hunt");
+      if (step >= 8) {
+        n("dust", "Dust trail", "note", "subnode", 130, 90, {
+          description: "Hoofprints leave the road after the second wagon. One horse. No pack.",
+        });
+        e("ambush", "dust");
+        e("dust", "hunt");
+      } else {
+        e("ambush", "hunt");
+      }
       e("ambush", "widow");
     }
 
@@ -2162,6 +2170,10 @@
       state.highlightTag = null;
       state.selectedId = null;
       state.selectedIds = new Set();
+    } else if (step === 8) {
+      state.highlightTag = null;
+      state.selectedId = "dust";
+      state.selectedIds = new Set(["dust"]);
     }
 
     syncMapTitle();

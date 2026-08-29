@@ -263,4 +263,12 @@ If you’re typing in a field, the keys stay with the field.
 
 Switch computers? Export on this one, Import on that one.
 
+---
+
+## Origin
+
+The first drawing. Paper, a marker, the convoy already in the middle. Inspector bottom-left, tag rail on the right, three dots under every name. Padlock on Tsurun. That sheet is what this file grew from.
+
+![Original pen sketch of Prep Map](screenshots/00-original-sketch.png)
+
 Made by [Grok](https://grok.com), built by xAI.
