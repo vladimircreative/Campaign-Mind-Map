@@ -12,88 +12,90 @@ Four files: `index.html`, `styles.css`, `app.js`, this. No install, no login, no
 
 Double-click `index.html`. Or drop the folder on GitHub Pages / Netlify / `python3 -m http.server` if you want a URL.
 
-Click **Prep Map** at the top of the right rail and name the campaign. Export uses that name.
+Click the title in the right rail and name the campaign. Export uses that name.
 
-After a Clear, add `?demo=1` to the URL to load the sample board (convoy, raiders, the third rider) so you can poke at statuses, pages, and tags without inventing a table first.
+After a Clear, add `?demo=1` to the URL for a dense sample board, or `?story=1` … `?story=7` to walk the campaign below.
 
 Press **?** any time for the cheat sheet.
 
-![Empty first-run canvas with toolbar, navigator, pages rail, and export](screenshots/20-empty.png)
-
-*First open. Paper, navigator, a right rail, Undo / Redo / Fit / ? in the corner. Double-click the page.*
-
 ---
 
-## Use-cases for a new table
+## A session, start to finish
 
-### 1. First session — empty paper to a cast
+### 1. Empty paper, help open
 
-You have a one-shot next week and three names on a napkin.
+Wheel zooms toward the cursor. Middle-mouse, right-mouse, or **Space + drag** pans. The navigator in the top-right is empty until something lives on the page.
 
-1. Double-click empty paper. That’s a node. Name it. Pick a type (Character, Location, Event, Faction, Note).
-2. Drag the **ring** of A onto B, or select A and **Shift-click** B. A line appears.
-3. Click the line if the connection itself is a beat — a debt, a war, a rumor. That drops a smaller **subnode** on the line.
-4. Click a body to open the notes sheet. Type the first line the table needs to hear. Tags: type, Enter.
+Double-click empty paper. That’s a node.
 
-New nodes shove neighbours a little so they don’t sit on top of each other. **F** frames whatever is on the current page.
+![Empty board with the ? help overlay open](screenshots/01-empty-help.png)
 
-![Full Salt Road board with help overlay, inspector on Convoy, navigator, session pages and tags](screenshots/21-board-help.png)
+*First open. Help sheet, navigator, pages rail. Double-click the page.*
 
-*A session already in motion. Help sheet top-left. Inspector on the event. Navigator top-right. Pages and tags on the rail.*
+### 2. Put a cast on the table
 
-### 2. Between sessions — write it down, don’t lose the thread
+Two characters, an event, a place. Drag the **ring** of A onto B, or select A and **Shift-click** B.
 
-Click a node. The notes sheet docks bottom-left: name, type, **thread** (is this still in play?), **condition** (for people), who it’s tied to, tags, notes.
+Click the event. The notes sheet docks bottom-left. Type what the table needs to hear.
 
-- Hover a node for a second and the first line of notes follows the cursor. Useful when the table is talking and you don’t want the sheet open.
-- **Close thread** greys it and crosses the name. It stays on the board so you remember it fired.
-- Gold ring = the fork they didn’t take. Dashed empty ring = a name nobody will say. Hatched dashed = you heard it, you don’t know it.
+![Jagger and Sonny linked to Ambush, Ambush linked to Salt road, notes filled](screenshots/02-cast.png)
 
-![Inspector open on Blackout — resolved thread, dead condition, navigator visible](screenshots/22-inspector.png)
+*Ambush is live. Notes are on the sheet. Jagger and Sonny are both on the road.*
 
-*Blackout is resolved and dead. The disc is grey. The notes still say how. Campaign title is Salt Road.*
+### 3. The event fires. Someone doesn’t walk away
 
-### 3. At the table — find the gang without hunting
+Thread is “is this still in play?”, not “is this NPC dead”.
 
-Stick `#raiders` on whoever deserves it. The rail lists tags.
+- **Close thread** (or set Thread → Resolved). The disc greys. The name is crossed.
+- On a character, Condition → Dead. A skull mark. The disc colour does not change unless you also close their thread.
 
-- Click a name under a tag to jump there (canvas moves, notes open).
-- Click the **#RAIDERS** header to light the whole gang and dim the rest. Click again (or select something off-tag) to drop the highlight.
+![Ambush resolved, Sonny dead](screenshots/03-resolved.png)
 
-![Tag highlight: #RAIDERS members ringed, the rest of the board dimmed](screenshots/23-tags.png)
+*Ambush is resolved. Sonny is dead. Jagger is still alive. The notes stay.*
 
-*Click the tag header. Related nodes stay bright. Everything else steps back.*
+### 4. Three forks off the same event
 
-### 4. After session 1 — a new sheet, same campaign
+New events, each linked back to Ambush. Same tag on all three — type `aftermath`, Enter.
 
-Right rail, **Pages**.
+The rail lists **#AFTERMATH** and the three names.
 
-- **All pages** is the whole campaign.
-- **+** is a new session (empty, already framed). Pencil renames. Clicking the name just switches.
-- Paste lands on the page you’re looking at. Box-select a clique in Session 1, **Ctrl+C**, switch to Session 2, **Ctrl+V** — they’ve moved house. Links between the copied nodes come along. Links out to the rest of the board do not.
-- **×** deletes that session **and everything that lived on it**. Undo if you flinch. You can’t delete the last page.
+![Three aftermath events tagged and linked to Ambush](screenshots/04-aftermath.png)
 
-![Session 1 filtered — Session 2 ghost is off the sheet](screenshots/24-session.png)
+*Burn the wagons. Hunt the rider. Ask the widow. One tag, three doors.*
 
-*Session 1 only. The third rider lives on Session 2 until you need the whole map.*
+### 5. Click the tag
 
-### 5. Glance without opening the sheet
+Click **#AFTERMATH** in the rail.
 
-Hover. First line of notes, type, and thread. Good when you’re mid-sentence and just need “what was the salt road again.”
+Those nodes become a selection — same as a marquee box. Drag one, they all move. **Ctrl+C** copies the set and the links between them. The rest of the board and its lines fade hard so the group is the only thing you can see.
 
-![Hover card over Convoy with excerpt](screenshots/25-hover.png)
+Click the header again to drop the highlight (the selection stays). Click a name under the tag to jump to that node.
 
-*Cursor on Convoy. Excerpt under the hand. Inspector can stay closed.*
+![#AFTERMATH selected: three events bright, everything else faded](screenshots/05-tag.png)
 
-### 6. Read the board from across the table
+*Tag click = group select. Dimmed nodes and lines step back.*
 
-Type sets the fill. Thread sets the ring. People get a small mark in front of the name — heart, missing, compromised, skull — so “is this NPC dead” is not the same question as “is this plot still in play.”
+### 6. Next session, same events, new ground
 
-Subnodes are the small pills on the lines. Planted links are dashed.
+**+** in Pages. That’s Session 2, empty, already framed.
 
-![Current board language: type fills, vitality marks, ghost ring, missed gold, navigator](screenshots/26-board.png)
+The three events are still on the clipboard. **Ctrl+V** on a *different* page pastes them **in place** — same coordinates as Session 1, so they will stack when you look at All pages. (Paste on the *same* page still lands under the cursor, so you don’t cover the originals.)
 
-*Convoy is an event. Blackout is resolved and dead. The third rider is a ghost. Ask the widow is the fork they missed.*
+Add a location for each event. Link it.
+
+![Session 2: pasted aftermath events plus new locations](screenshots/06-session2.png)
+
+*Session 2 only. The three events came across. Ash field, Watch post, Widow’s house are new.*
+
+### 7. All pages
+
+Click **All pages**. Session 1 and Session 2 occupy the same paper.
+
+The pasted events sit exactly on their Session 1 twins. The new locations take the free space underneath, so nothing from Session 1 is covered.
+
+![All pages: overlapping aftermath events, new locations in open space](screenshots/07-all-pages.png)
+
+*One map, two sessions. Events stack. Places don’t fight.*
 
 ---
 
@@ -101,20 +103,21 @@ Subnodes are the small pills on the lines. Planted links are dashed.
 
 | What | How |
 |---|---|
-| Infinite paper | Wheel zooms toward the cursor. Middle-mouse, right-mouse, or **Space + drag** pans. |
-| Nodes | Double-click paper. Drag the middle to move. Click body → select + notes. Double-click body → rename. |
+| Infinite paper | Wheel zooms toward the cursor. Middle / right / **Space + drag** pans. |
+| Nodes | Double-click paper. Drag the body to move. Click body → select + notes. Double-click body → rename. |
 | Two sizes | Big disc = person / place / event / faction / note. Small pill = beat on a line. |
 | Links | Drag the **ring** of A onto B, or select A and **Shift-click** B. |
-| Planted links | Hold **Alt** while linking, or **Alt-click** a line later. Dashed. “I planted this, it hasn’t fired.” |
-| Subnodes | Click a line. Automatically tied to both ends. |
-| Notes sheet | Bottom left. Title, type, thread, condition, page, linked names, tags, notes. **×** closes it. |
-| Tags | Type in the sheet, Enter. Rail lists them. Header highlights the set. Name focuses the node. |
-| Pages | One sheet per session, plus **All pages**. Filter hides the rest. |
+| Planted links | Hold **Alt** while linking, or **Alt-click** a line later. Dashed. |
+| Subnodes | Click a line. Already tied to both ends. |
+| Notes sheet | Bottom left. Title, type, thread, condition, linked names, tags, notes. **×** closes it. |
+| Tags | Type in the sheet, Enter. Click the rail header to select every member (move / copy / paste / delete as a group) and fade the rest. |
+| Pages | One sheet per session, plus **All pages**. |
+| Paste across pages | Onto a *new* page: same world position. Onto the *same* page: under the cursor. |
 | Thread | Live / Resolved / Missed / Rumor / Ghost. Visual, not a delete. |
-| Condition | Alive / Missing / Compromised / Dead — characters only. Does not recolour the disc. |
-| Navigator | Tiny map, top-right. Dots are nodes, orange box is the view. Click or drag it. |
-| Persistence | Every change writes to this browser (IndexedDB, localStorage fallback). Refresh restores. |
-| Backup | **Export** JSON named after the map. **Import** replaces the open board (old files still load). **Clear** wipes; Undo will not bring a Clear back. |
+| Condition | Alive / Missing / Compromised / Dead — characters only. |
+| Navigator | Tiny map, top-right. Dots are nodes, orange box is the view. |
+| Persistence | Every change writes to this browser. Refresh restores. |
+| Backup | **Export** JSON named after the map. **Import** replaces the open board. **Clear** wipes; Undo will not bring a Clear back. |
 
 ---
 
@@ -125,7 +128,7 @@ Subnodes are the small pills on the lines. Planted links are dashed.
 | Double-click empty paper | New node |
 | Double-click a node | Rename in place |
 | Click a node body | Select and open the notes sheet |
-| Drag a node body | Move (multi-select moves as a pack) |
+| Drag a node body | Move (a multi-selection moves as a pack) |
 | Drag empty paper | Selection box |
 | Drag the **ring** | Start a link (rubber-band follows the cursor) |
 | Drop the ring on another node | Finish the link |
@@ -139,14 +142,14 @@ Subnodes are the small pills on the lines. Planted links are dashed.
 | Middle-drag / right-drag | Pan |
 | **Space + drag** | Pan |
 | Click / drag the navigator | Jump the view |
-| Click a tag header | Highlight that set, dim the rest |
+| Click a tag header | Select every member, fade the rest |
 | Click a name in the rail | Focus that node and open notes |
 | Click **×** on the notes sheet | Close it |
 | **F** or Fit | Frame everything on the current page |
 | **?** | Cheat sheet |
 | **Esc** | Drop a half-drawn link, a selection, or the help sheet |
 | **Ctrl+Z** / **Ctrl+Y** | Undo / redo |
-| **Ctrl+C** / **Ctrl+X** / **Ctrl+V** | Copy / cut / paste (group lands under the cursor, on the current page) |
+| **Ctrl+C** / **Ctrl+X** / **Ctrl+V** | Copy / cut / paste |
 | **Delete** / **Backspace** | Delete the selection |
 | Undo / Redo / Fit / ? | Top-left buttons, same as the keys |
 
@@ -158,13 +161,13 @@ If you’re typing in a field, the keys stay with the field.
 
 ### Canvas
 
-- Semi-endless paper; no page edges to fight.
-- Zoom toward the mouse wheel, not the center of the window.
+- Semi-endless paper.
+- Zoom toward the mouse wheel.
 - Pan with middle mouse, right mouse, or Space-drag.
 - Selection marquee on empty paper.
-- Weak repulsion so a new node doesn’t land on top of an old one.
-- Multi-select drag moves the pack and keeps relative layout.
-- Fit / **F** frames the current page (switching pages does this for you).
+- Weak repulsion so a new node doesn’t land on an old one.
+- Multi-select drag moves the pack.
+- Fit / **F** frames the current page (switching pages does this for you). Fit leaves room for an open notes sheet.
 - Mini-map navigator: node dots + current-view box.
 - Desktop-only gate on a narrow window.
 
@@ -172,14 +175,12 @@ If you’re typing in a field, the keys stay with the field.
 
 - Create by double-click on empty paper.
 - Rename by double-click on the node, or in the notes sheet.
-- Types: Character, Location, Event, Faction, Note — each with its own icon and fill.
+- Types: Character, Location, Event, Faction, Note — icon and fill per type.
 - Two visual sizes: large discs and small line-pills (subnodes).
-- Subnodes are the same data model, just smaller and born on a link.
-- Drag anywhere on the body to reposition.
-- Click body selects and opens the inspector; tag-group highlight clears if the new selection isn’t in that tag.
-- Unread / new-node cue until you’ve opened it.
+- Drag the body to reposition. A selected group moves together.
+- Click body selects and opens the inspector.
 
-### Thread and condition (Pathologic-style status)
+### Thread and condition
 
 - **Live** — still in the stew.
 - **Resolved** — grey fill, name crossed. **Close thread** does this without deleting.
@@ -191,29 +192,32 @@ If you’re typing in a field, the keys stay with the field.
 
 ### Links
 
-- Ring-drag from A to B with a live rubber-band from the rim to the cursor.
+- Ring-drag from A to B with a live rubber-band.
 - Shift-click from a selected node to another.
 - Direct line with no subnode is allowed.
 - Click the line to insert a subnode already tied to both ends.
 - Alt while creating, or Alt-click later, marks a planted (dashed) support.
 - Shift-click a line deletes it.
-- Esc or a click on empty paper kills a half-drawn rubber-band so it does not linger.
-- Edges render under nodes so a highlight never hides a disc.
+- Esc or a click on empty paper kills a half-drawn rubber-band.
+- Edges render under nodes.
 
-### Notes sheet (inspector)
+### Notes sheet
 
 - Docks bottom-left; **×** closes it.
-- Title field, type, thread, condition (characters), page assignment.
+- Title, type, thread, condition (characters), linked names, tags, notes.
 - Kind pill + **Close thread**.
-- Linked-node list; click a name to jump.
+- Click a linked name to jump.
 - Tag chips with remove; type + Enter to add.
-- Ruled notes field; the sheet grows toward the toolbar before it scrolls.
-- Delete in the sheet removes the whole selection, not only the visible node.
+- Delete in the sheet removes the whole selection.
 
-### Hover
+### Tags and rail
 
-- Pause on a node: title, type, thread, first line of notes under the cursor.
-- Does not steal the click. Good at the table.
+- Free-form tags on any node.
+- Rail groups nodes under each tag.
+- Click the header → those nodes are a real selection (move, copy, cut, paste, delete) and everything else, including lines that don’t join two members, fades hard.
+- Click again to drop the highlight. The selection stays until you click empty paper or Esc.
+- Click a listed name → pan, comfortable zoom, open notes.
+- Rename the map in the rail header; that name is the Export filename.
 
 ### Pages / sessions
 
@@ -221,23 +225,13 @@ If you’re typing in a field, the keys stay with the field.
 - New page starts empty and framed.
 - Rename with the pencil; a plain click only switches.
 - Delete page removes its nodes (undoable). Last page cannot be deleted.
-- Inspector can move a node between pages.
-- Paste targets the page you are looking at.
-
-### Tags and rail
-
-- Free-form tags on any node.
-- Rail groups nodes under each tag.
-- Click header → highlight members, dim the rest.
-- Click a listed name → pan, comfortable zoom, open notes.
-- Selecting an untagged / other-tag node drops the group highlight.
-- Rename the map in the rail header; that name is the Export filename.
+- Paste onto a page the source nodes do not belong to keeps their world position, so All pages stacks them.
+- Paste onto the same page still offsets under the cursor.
 
 ### Edit and history
 
 - Undo / Redo buttons and **Ctrl+Z** / **Ctrl+Y**.
-- Copy / cut / paste of a selection, connections inside the group preserved.
-- Paste offset under the cursor so the clone is visible.
+- Copy / cut / paste of a selection; links inside the group come along; links out do not.
 - Delete / Backspace on a selection.
 - One undo unit per rename session, not per keystroke.
 
@@ -249,12 +243,11 @@ If you’re typing in a field, the keys stay with the field.
 - Schema migration so older boards still open.
 - Export / Import JSON.
 - Clear the board (export first; Clear is not on the undo stack).
-- `?demo=1` reseeds the sample campaign after a wipe.
+- `?demo=1` reseeds a dense sample. `?story=N` reseeds the campaign in this README.
 
 ### Help and chrome
 
 - **?** overlay with the gestures you will actually use.
-- First-run hint on empty paper.
 - Toasts for export / import / destructive actions.
 - No account, no network required after the files are on disk.
 

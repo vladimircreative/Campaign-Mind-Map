@@ -237,10 +237,31 @@ g.edge:hover .edge-vis {
 }
 
 .node.tag-hot {
-  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--highlight);
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5.5px var(--highlight);
+}
+.node.tag-hot.selected {
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5.5px var(--select);
 }
 
-.node.dimmed { opacity: 0.32; }
+.node.dimmed {
+  opacity: 0.11;
+  filter: grayscale(0.45);
+  box-shadow: none;
+}
+.node.dimmed:hover {
+  box-shadow: none;
+}
+
+.edge-vis.dimmed,
+g.edge.dimmed .edge-vis {
+  opacity: 0.08;
+  stroke: #8a7f70;
+}
+.edge-vis.tag-hot,
+g.edge.tag-hot .edge-vis {
+  stroke-width: 2.15;
+  opacity: 1;
+}
 
 .node.linking-src {
   box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--select);
@@ -285,6 +306,12 @@ g.edge:hover .edge-vis {
 .node.tag-hot.status-live,
 .node.tag-hot.status-missed {
   box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--highlight);
+}
+.node.tag-hot.selected,
+.node.tag-hot.selected.status-live,
+.node.tag-hot.selected.status-missed,
+.node.tag-hot.selected.status-ghost {
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5.5px var(--select);
 }
 .node .unread {
   position: absolute;

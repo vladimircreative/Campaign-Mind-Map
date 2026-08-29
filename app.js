@@ -587,24 +587,30 @@
         ? state.currentPageId
         : (state.pages[0] && state.pages[0].id) || null;
     const src = state.clipboard.nodes;
-    let cx = 0;
-    let cy = 0;
-    src.forEach((n) => {
-      cx += n.x;
-      cy += n.y;
-    });
-    cx /= src.length;
-    cy /= src.length;
-    const rect = els.viewport.getBoundingClientRect();
-    const px = state.pointer.x;
-    const py = state.pointer.y;
-    const onPaper =
-      px >= rect.left && px <= rect.right && py >= rect.top && py <= rect.bottom;
-    const target = onPaper
-      ? screenToWorld(px, py)
-      : screenToWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    const dx = target.x - cx;
-    const dy = target.y - cy;
+    const srcPages = new Set(src.map((n) => n.pageId).filter(Boolean));
+    const pasteInPlace = pageId && !srcPages.has(pageId);
+    let dx = 0;
+    let dy = 0;
+    if (!pasteInPlace) {
+      let cx = 0;
+      let cy = 0;
+      src.forEach((n) => {
+        cx += n.x;
+        cy += n.y;
+      });
+      cx /= src.length;
+      cy /= src.length;
+      const rect = els.viewport.getBoundingClientRect();
+      const px = state.pointer.x;
+      const py = state.pointer.y;
+      const onPaper =
+        px >= rect.left && px <= rect.right && py >= rect.top && py <= rect.bottom;
+      const target = onPaper
+        ? screenToWorld(px, py)
+        : screenToWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      dx = target.x - cx;
+      dy = target.y - cy;
+    }
     const fresh = new Set();
     for (const n of src) {
       const id = uid();
@@ -652,7 +658,17 @@
     renderMinimap();
   }
 
+  function tagMemberIds() {
+    if (!state.highlightTag) return null;
+    return new Set(
+      Object.values(state.nodes)
+        .filter((n) => (n.tags || []).some((t) => normTag(t) === state.highlightTag))
+        .map((n) => n.id)
+    );
+  }
+
   function renderEdges() {
+    const hot = tagMemberIds();
     const parts = [];
     for (const e of Object.values(state.edges)) {
       const a = state.nodes[e.a];
@@ -662,10 +678,11 @@
       const from = rimPoint(a, b);
       const to = rimPoint(b, a);
       const planted = e.style === "planted" ? "planted" : "";
+      const tagCls = hot ? (hot.has(e.a) && hot.has(e.b) ? "tag-hot" : "dimmed") : "";
       parts.push(
-        `<g class="edge" data-id="${e.id}">
+        `<g class="edge ${tagCls}" data-id="${e.id}">
           <line class="edge-hit ${planted}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
-          <line class="edge-vis ${planted}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
+          <line class="edge-vis ${planted} ${tagCls}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
         </g>`
       );
     }
@@ -714,13 +731,7 @@
   }
 
   function renderNodes() {
-    const hot = state.highlightTag
-      ? new Set(
-          Object.values(state.nodes)
-            .filter((n) => n.tags.some((t) => normTag(t) === state.highlightTag))
-            .map((n) => n.id)
-        )
-      : null;
+    const hot = tagMemberIds();
 
     const html = Object.values(state.nodes)
       .filter(visibleNode)
@@ -1004,12 +1015,7 @@
       .join("");
 
     els.tagList.querySelectorAll(".tag-group-title").forEach((el) => {
-      el.addEventListener("click", () => {
-        const tag = el.dataset.tag;
-        state.highlightTag = state.highlightTag === tag ? null : tag;
-        renderNodes();
-        renderRail();
-      });
+      el.addEventListener("click", () => selectTag(el.dataset.tag));
     });
     els.tagList.querySelectorAll("li[data-id]").forEach((li) => {
       li.addEventListener("click", () => {
@@ -1133,6 +1139,24 @@
     persist();
     toast("New page");
     requestAnimationFrame(fitView);
+  }
+
+  function selectTag(tag) {
+    if (!tag) return;
+    if (state.highlightTag === tag) {
+      state.highlightTag = null;
+      render();
+      persist();
+      return;
+    }
+    state.highlightTag = tag;
+    const members = Object.values(state.nodes).filter(
+      (n) => visibleNode(n) && (n.tags || []).some((t) => normTag(t) === tag)
+    );
+    state.selectedIds = new Set(members.map((n) => n.id));
+    state.selectedId = members[0] ? members[0].id : null;
+    render();
+    persist();
   }
 
   function selectNode(id, { skipRender, add } = {}) {
@@ -2007,6 +2031,146 @@
     centerCamera();
   }
 
+  function loadStory(step) {
+    step = Math.max(1, Math.min(7, Number(step) || 1));
+    const session1 = { id: "page-s1", title: "Session 1" };
+    const session2 = { id: "page-s2", title: "Session 2" };
+    state.pages = step >= 6 ? [session1, session2] : [session1];
+    state.currentPageId = step === 6 ? session2.id : step === 7 ? "all" : session1.id;
+    state.nodes = {};
+    state.edges = {};
+    state.selectedId = null;
+    state.selectedIds = new Set();
+    state.highlightTag = null;
+    state.hintHidden = true;
+    state.title = "Salt Road";
+    const n = (id, title, type, kind, x, y, extra) => {
+      state.nodes[id] = Object.assign(
+        {
+          id,
+          title,
+          type,
+          kind,
+          x,
+          y,
+          tags: [],
+          description: "",
+          status: "live",
+          vitality: "alive",
+          seen: true,
+          pageId: session1.id,
+        },
+        extra || {}
+      );
+      return id;
+    };
+    const e = (a, b, style) => {
+      const id = a + "--" + b;
+      state.edges[id] = { id, a, b, style: style || "solid" };
+    };
+
+    if (step >= 2) {
+      n("jagger", "Jagger", "character", "node", -260, -80, {
+        description: "Pays his debts in favors.",
+        vitality: "alive",
+      });
+      n("sonny", "Sonny", "character", "node", 230, -70, {
+        description: "Last seen riding east.",
+        vitality: step >= 3 ? "dead" : "alive",
+        status: step >= 3 ? "resolved" : "live",
+      });
+      n("ambush", "Ambush", "event", "node", -10, 10, {
+        description: "The convoy is hit on the salt road. Jagger and Sonny are both on it.",
+        status: step >= 3 ? "resolved" : "live",
+      });
+      n("salt-road", "Salt road", "location", "node", -10, 210, {
+        description: "Packed white earth. No cover.",
+      });
+      e("jagger", "ambush");
+      e("sonny", "ambush");
+      e("ambush", "salt-road");
+    }
+
+    if (step >= 4) {
+      const tag = ["aftermath"];
+      n("burn", "Burn the wagons", "event", "node", -300, 170, {
+        tags: tag,
+        description: "Leave nothing the raiders can haul.",
+      });
+      n("hunt", "Hunt the rider", "event", "node", 270, 170, {
+        tags: tag,
+        description: "One got away east. Follow the dust.",
+      });
+      n("widow", "Ask the widow", "event", "node", 150, 300, {
+        tags: tag,
+        description: "She saw the third horse. They never stopped.",
+      });
+      e("ambush", "burn");
+      e("ambush", "hunt");
+      e("ambush", "widow");
+    }
+
+    if (step >= 6) {
+      const copies = [
+        ["burn", "Burn the wagons", -300, 170, "Leave nothing the raiders can haul."],
+        ["hunt", "Hunt the rider", 270, 170, "One got away east. Follow the dust."],
+        ["widow", "Ask the widow", 150, 300, "She saw the third horse. They never stopped."],
+      ];
+      for (const [src, title, x, y, desc] of copies) {
+        n(src + "-s2", title, "event", "node", x, y, {
+          tags: ["aftermath"],
+          description: desc,
+          pageId: session2.id,
+        });
+      }
+      n("ash-field", "Ash field", "location", "node", -300, 340, {
+        description: "Black rings where the wagons stood.",
+        pageId: session2.id,
+      });
+      n("watch-post", "Watch post", "location", "node", 270, 340, {
+        description: "A ridge the rider has to crest.",
+        pageId: session2.id,
+      });
+      n("cottage", "Widow's house", "location", "node", 150, 460, {
+        description: "Shutters closed since the raid.",
+        pageId: session2.id,
+      });
+      e("burn-s2", "ash-field");
+      e("hunt-s2", "watch-post");
+      e("widow-s2", "cottage");
+    }
+
+    if (step === 1) {
+      state.hintHidden = false;
+      state.currentPageId = "all";
+      if (els.help) els.help.hidden = false;
+    } else if (step === 2 || step === 3) {
+      state.selectedId = "ambush";
+      state.selectedIds = new Set(["ambush"]);
+    } else if (step === 4) {
+      state.selectedId = "widow";
+      state.selectedIds = new Set(["widow"]);
+    } else if (step === 5) {
+      state.highlightTag = "aftermath";
+      state.selectedIds = new Set(["burn", "hunt", "widow"]);
+      state.selectedId = "burn";
+    } else if (step === 6) {
+      state.highlightTag = null;
+      state.selectedIds = new Set(["burn-s2", "hunt-s2", "widow-s2"]);
+      state.selectedId = "burn-s2";
+    } else if (step === 7) {
+      state.highlightTag = null;
+      state.selectedId = null;
+      state.selectedIds = new Set();
+    }
+
+    syncMapTitle();
+    if (els.hint) {
+      if (state.hintHidden) els.hint.classList.add("gone");
+      else els.hint.classList.remove("gone");
+    }
+  }
+
   function centerCamera() {
     const rail = 232;
     const w = Math.max(els.viewport.clientWidth || window.innerWidth - rail, 800);
@@ -2116,13 +2280,16 @@
     const params = new URLSearchParams(location.search);
     const wantDemo = params.get("demo") === "1";
     const wantEmpty = params.get("shot") === "empty";
-    if (wantDemo || wantEmpty) {
+    const story = params.get("story");
+    if (wantDemo || wantEmpty || story) {
       // Skip restore so screenshots / demo URLs are not poisoned by the last board.
     } else {
       await restore();
     }
     normalizeBoard();
-    if (wantDemo) {
+    if (story) {
+      loadStory(story);
+    } else if (wantDemo) {
       loadDemo();
       const hl = params.get("tag");
       if (hl) state.highlightTag = hl.toLowerCase();
@@ -2162,6 +2329,8 @@
       showHover,
       placeHover,
       loadDemo,
+      loadStory,
+      selectTag,
     };
   }
 
