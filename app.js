@@ -658,13 +658,55 @@
     renderMinimap();
   }
 
-  function tagMemberIds() {
-    if (!state.highlightTag) return null;
-    return new Set(
+  function idsForTag(tag) {
+    const seeds = Object.values(state.nodes)
+      .filter((n) => visibleNode(n) && (n.tags || []).some((t) => normTag(t) === tag))
+      .map((n) => n.id);
+    return expandWithBridgingSubnodes(seeds);
+  }
+
+  function expandWithBridgingSubnodes(seedList) {
+    const seeds = new Set(seedList);
+    const included = new Set(seeds);
+    const subIds = new Set(
       Object.values(state.nodes)
-        .filter((n) => (n.tags || []).some((t) => normTag(t) === state.highlightTag))
+        .filter((n) => n.kind === "subnode" && visibleNode(n))
         .map((n) => n.id)
     );
+    for (const start of seeds) {
+      const prev = {};
+      const seen = new Set([start]);
+      const q = [start];
+      while (q.length) {
+        const cur = q.shift();
+        for (const nb of neighbors(cur)) {
+          if (seen.has(nb)) continue;
+          const node = state.nodes[nb];
+          if (!node || !visibleNode(node)) continue;
+          if (seeds.has(nb)) {
+            seen.add(nb);
+            prev[nb] = cur;
+            let p = nb;
+            while (p && p !== start) {
+              if (subIds.has(p)) included.add(p);
+              p = prev[p];
+            }
+            continue;
+          }
+          if (subIds.has(nb)) {
+            seen.add(nb);
+            prev[nb] = cur;
+            q.push(nb);
+          }
+        }
+      }
+    }
+    return included;
+  }
+
+  function tagMemberIds() {
+    if (!state.highlightTag) return null;
+    return idsForTag(state.highlightTag);
   }
 
   function renderEdges() {
@@ -1150,11 +1192,13 @@
       return;
     }
     state.highlightTag = tag;
-    const members = Object.values(state.nodes).filter(
-      (n) => visibleNode(n) && (n.tags || []).some((t) => normTag(t) === tag)
-    );
-    state.selectedIds = new Set(members.map((n) => n.id));
-    state.selectedId = members[0] ? members[0].id : null;
+    const ids = idsForTag(tag);
+    state.selectedIds = ids;
+    const primary =
+      [...ids].find((id) => state.nodes[id] && state.nodes[id].kind !== "subnode") ||
+      [...ids][0] ||
+      null;
+    state.selectedId = primary;
     render();
     persist();
   }
