@@ -27,6 +27,7 @@ An almost endless sheet of paper. Zoom with the mouse wheel (toward the cursor).
 | Pan | Middle-drag, right-drag, or hold **Space** and drag |
 | Select several nodes | Drag empty paper (marquee). **Shift-drag** adds to the selection |
 | Frame everything on the current page | **Fit** button or **F** |
+| Navigator (top right) | Click or drag to jump. The orange box is the current view and shrinks as you zoom in. Every node on the current page is fitted into that map, including strays. |
 | Deselect / cancel a link | **Esc**, or a click that does not move |
 
 New nodes created on a session page stay on that page. **All pages** shows the whole campaign.
@@ -127,7 +128,7 @@ Tags live on the node and are indexed in the rail.
 
 ## Copy and paste
 
-Select with a marquee (or click). **Ctrl+C** copies the selection and the links *between* those nodes. **Ctrl+V** pastes a copy, offset a little, onto the current page. Paste again to stack further copies. Undo works.
+Select with a marquee (or click). **Ctrl+C** copies the selection and the links *between* those nodes. **Ctrl+X** cuts (copy, then delete). **Ctrl+V** pastes a copy, offset a little, onto the current page. Paste again to stack further copies. Undo works.
 
 ---
 
@@ -137,7 +138,8 @@ Every change writes to IndexedDB (or localStorage if IndexedDB is unavailable). 
 
 | Button | What it does |
 |---|---|
-| Export | Download a JSON snapshot |
+| Title | Click **Prep Map** in the rail to rename the campaign. That name is the Export filename. |
+| Export | Download a JSON snapshot named after the map |
 | Import | Replace the board with a JSON file (v1 files are migrated) |
 | Clear | Empty the board. Undo will not resurrect a cleared map; Export first if you care |
 
@@ -149,7 +151,7 @@ Every change writes to IndexedDB (or localStorage if IndexedDB is unavailable). 
 |---|---|
 | **Ctrl+Z** | Undo |
 | **Ctrl+Y** or **Ctrl+Shift+Z** | Redo |
-| **Ctrl+C** / **Ctrl+V** | Copy / paste selection |
+| **Ctrl+C** / **Ctrl+X** / **Ctrl+V** | Copy / cut / paste selection |
 | **Delete** / **Backspace** | Delete selection |
 | **F** | Fit all visible nodes |
 | **Esc** | Cancel link, close help, or deselect |

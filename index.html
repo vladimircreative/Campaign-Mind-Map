@@ -69,7 +69,7 @@
     <aside id="rail" class="rail">
       <div class="rail-clip" aria-hidden="true"></div>
       <header class="rail-head">
-        <div class="wordmark">Prep Map</div>
+        <input id="map-title" class="wordmark" type="text" maxlength="48" value="Prep Map" title="Rename this map" />
         <div class="wordmark-sub">saved in this browser</div>
       </header>
       <div class="rail-section">
@@ -93,6 +93,7 @@
       </footer>
     </aside>
 
+    <canvas id="minimap" class="minimap" width="196" height="132" aria-label="Navigator"></canvas>
     <div id="history-bar" class="history-bar">
       <button type="button" id="btn-undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
       <button type="button" id="btn-redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
@@ -105,8 +106,9 @@
       <p><b>Drag the ring</b> — link · <b>Alt</b> while linking — planted (dashed)</p>
       <p><b>Click a line</b> — drop a subnode · <b>Alt-click</b> line — dash it · <b>Shift-click</b> line — delete</p>
       <p><b>Shift-click</b> a node — link to the selected one</p>
-      <p><b>Ctrl+C / Ctrl+V</b> copy · paste onto the current page</p>
+      <p><b>Ctrl+C / Ctrl+X / Ctrl+V</b> copy · cut · paste onto the current page</p>
       <p><b>Ctrl+Z / Ctrl+Y</b> undo · <b>F</b> frame all · <b>Esc</b> deselect</p>
+      <p><b>Navigator</b> (top right) — click or drag to jump. Box is the current view.</p>
     </div>
     <div id="marquee" class="marquee" hidden></div>
     <div id="hovercard" class="hovercard" hidden></div>

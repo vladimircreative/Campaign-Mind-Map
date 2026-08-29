@@ -81,6 +81,8 @@
     btnHelp: $("btn-help"),
     help: $("help"),
     hovercard: $("hovercard"),
+    mapTitle: $("map-title"),
+    minimap: $("minimap"),
     marquee: $("marquee"),
     inspVitalIcon: $("insp-vital-icon"),
     inspLinks: $("insp-links"),
@@ -126,6 +128,9 @@
     renamingPage: null,
     marquee: null,
     spaceDown: false,
+    mini: null,
+    miniDrag: false,
+    title: "Prep Map",
   };
 
   function uid() {
@@ -146,6 +151,31 @@
     return (TYPES.find((t) => t.id === id) || TYPES[4]).label;
   }
 
+  function fileSlug(name) {
+    const s = String(name || "Prep Map").trim() || "Prep Map";
+    return s.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").slice(0, 60);
+  }
+
+  function syncMapTitle() {
+    const title = state.title || "Prep Map";
+    if (els.mapTitle && document.activeElement !== els.mapTitle) {
+      els.mapTitle.value = title;
+    }
+    document.title = title + " — Prep Map";
+  }
+
+  function setMapTitle(raw) {
+    const next = String(raw || "").trim() || "Prep Map";
+    if (next === state.title) {
+      syncMapTitle();
+      return;
+    }
+    pushHistory();
+    state.title = next;
+    syncMapTitle();
+    persist();
+  }
+
   function emptyBoard() {
     return { version: 1, nodes: {}, edges: {}, view: { x: 0, y: 0, scale: 1 } };
   }
@@ -156,6 +186,7 @@
       edges: state.edges,
       pages: state.pages,
       currentPageId: state.currentPageId,
+      title: state.title,
     });
   }
 
@@ -165,7 +196,9 @@
     state.edges = data.edges || {};
     if (data.pages) state.pages = data.pages;
     if (data.currentPageId) state.currentPageId = data.currentPageId;
+    if (data.title) state.title = data.title;
     normalizeBoard();
+    syncMapTitle();
   }
 
   function normalizeNode(n) {
@@ -278,6 +311,7 @@
       edges: state.edges,
       pages: state.pages,
       currentPageId: state.currentPageId,
+      title: state.title || "Prep Map",
       view: { ...state.view },
       hintHidden: state.hintHidden,
     };
@@ -289,6 +323,8 @@
     state.edges = data.edges || {};
     state.pages = data.pages || [];
     state.currentPageId = data.currentPageId || "all";
+    if (data.title) state.title = data.title;
+    syncMapTitle();
     if (data.view) {
       state.view.x = data.view.x || 0;
       state.view.y = data.view.y || 0;
@@ -337,6 +373,7 @@
 
   function applyView() {
     els.world.style.transform = `translate(${state.view.x}px, ${state.view.y}px) scale(${state.view.scale})`;
+    renderMinimap();
   }
 
   function focusNode(id) {
@@ -518,9 +555,9 @@
     persist();
   }
 
-  function copySelection() {
+  function copySelection({ quiet } = {}) {
     const ids = selectedSet();
-    if (!ids.size) return;
+    if (!ids.size) return false;
     const nodes = [...ids]
       .map((id) => state.nodes[id])
       .filter(Boolean)
@@ -530,7 +567,15 @@
       .map((e) => JSON.parse(JSON.stringify(e)));
     state.clipboard = { nodes, edges };
     state.pasteN = 1;
-    toast("Copied " + nodes.length);
+    if (!quiet) toast("Copied " + nodes.length);
+    return true;
+  }
+
+  function cutSelection() {
+    if (!copySelection({ quiet: true })) return;
+    const n = state.clipboard.nodes.length;
+    deleteSelected();
+    toast("Cut " + n);
   }
 
   function pasteSelection() {
@@ -541,17 +586,33 @@
       state.currentPageId !== "all"
         ? state.currentPageId
         : (state.pages[0] && state.pages[0].id) || null;
-    const ox = 40 * state.pasteN;
-    const oy = 40 * state.pasteN;
-    state.pasteN += 1;
+    const src = state.clipboard.nodes;
+    let cx = 0;
+    let cy = 0;
+    src.forEach((n) => {
+      cx += n.x;
+      cy += n.y;
+    });
+    cx /= src.length;
+    cy /= src.length;
+    const rect = els.viewport.getBoundingClientRect();
+    const px = state.pointer.x;
+    const py = state.pointer.y;
+    const onPaper =
+      px >= rect.left && px <= rect.right && py >= rect.top && py <= rect.bottom;
+    const target = onPaper
+      ? screenToWorld(px, py)
+      : screenToWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    const dx = target.x - cx;
+    const dy = target.y - cy;
     const fresh = new Set();
-    for (const n of state.clipboard.nodes) {
+    for (const n of src) {
       const id = uid();
       map[n.id] = id;
       state.nodes[id] = Object.assign(JSON.parse(JSON.stringify(n)), {
         id,
-        x: n.x + ox,
-        y: n.y + oy,
+        x: n.x + dx,
+        y: n.y + dy,
         pageId,
         seen: true,
       });
@@ -588,6 +649,7 @@
     renderInspector();
     renderRail();
     if (!state.linkFrom) hideRubber();
+    renderMinimap();
   }
 
   function renderEdges() {
@@ -827,6 +889,7 @@
         ln.setAttribute("y2", to.y);
       });
     });
+    renderMinimap();
   }
 
   function renderInspector() {
@@ -991,6 +1054,7 @@
         state.renamingPage = null;
         render();
         persist();
+        requestAnimationFrame(fitView);
       });
     });
     els.pageList.querySelectorAll(".page-edit").forEach((btn) => {
@@ -1055,6 +1119,7 @@
     render();
     persist();
     toast(page.title + " deleted" + (doomed.length ? " · " + doomed.length + " nodes" : ""));
+    requestAnimationFrame(fitView);
   }
 
   function addPage() {
@@ -1067,6 +1132,7 @@
     render();
     persist();
     toast("New page");
+    requestAnimationFrame(fitView);
   }
 
   function selectNode(id, { skipRender, add } = {}) {
@@ -1235,6 +1301,182 @@
     persist();
   }
 
+  function miniColor(n) {
+    const st = n.status || "live";
+    if (st === "resolved") return "#8a8478";
+    if (st === "missed") return "#c4a035";
+    if (st === "ghost") return null;
+    if (st === "rumor") return "#b39a62";
+    return (
+      {
+        character: "#2f4f46",
+        location: "#6b4a24",
+        event: "#7a3030",
+        faction: "#33415f",
+        note: "#5a5348",
+      }[n.type] || "#5a5348"
+    );
+  }
+
+  function renderMinimap() {
+    const canvas = els.minimap;
+    if (!canvas) return;
+    const cssW = 196;
+    const cssH = 132;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.fillStyle = "#efe6d0";
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    const nodes = Object.values(state.nodes).filter(visibleNode);
+    const pad = 10;
+    let minX = 0, minY = 0, maxX = 400, maxY = 260;
+    if (nodes.length) {
+      minX = Infinity;
+      minY = Infinity;
+      maxX = -Infinity;
+      maxY = -Infinity;
+      for (const n of nodes) {
+        const r = radiusOf(n);
+        minX = Math.min(minX, n.x - r);
+        minY = Math.min(minY, n.y - r);
+        maxX = Math.max(maxX, n.x + r);
+        maxY = Math.max(maxY, n.y + r);
+      }
+    }
+    const spanX = Math.max(maxX - minX, 240);
+    const spanY = Math.max(maxY - minY, 160);
+    const extra = Math.max(spanX, spanY) * 0.08;
+    minX -= extra;
+    minY -= extra;
+    maxX += extra;
+    maxY += extra;
+    const worldW = maxX - minX;
+    const worldH = maxY - minY;
+    const scale = Math.min((cssW - pad * 2) / worldW, (cssH - pad * 2) / worldH);
+    const ox = pad + ((cssW - pad * 2) - worldW * scale) / 2;
+    const oy = pad + ((cssH - pad * 2) - worldH * scale) / 2;
+    state.mini = { minX, minY, scale, ox, oy, cssW, cssH };
+
+    const toMap = (x, y) => ({
+      x: ox + (x - minX) * scale,
+      y: oy + (y - minY) * scale,
+    });
+
+    ctx.lineWidth = 0.7;
+    ctx.strokeStyle = "rgba(42,36,28,0.28)";
+    for (const e of Object.values(state.edges)) {
+      const a = state.nodes[e.a];
+      const b = state.nodes[e.b];
+      if (!a || !b || !visibleNode(a) || !visibleNode(b)) continue;
+      const pa = toMap(a.x, a.y);
+      const pb = toMap(b.x, b.y);
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      if (e.style === "planted") ctx.setLineDash([2, 2]);
+      else ctx.setLineDash([]);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    for (const n of nodes) {
+      const p = toMap(n.x, n.y);
+      const r = n.kind === "subnode" ? 1.6 : 2.6;
+      const fill = miniColor(n);
+      const selected = n.id === state.selectedId || (state.selectedIds && state.selectedIds.has(n.id));
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = "#8a7f70";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (selected) {
+        ctx.strokeStyle = "#c45a2a";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r + 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    const rect = els.viewport.getBoundingClientRect();
+    const tl = screenToWorld(rect.left, rect.top);
+    const br = screenToWorld(rect.right, rect.bottom);
+    const a = toMap(tl.x, tl.y);
+    const b = toMap(br.x, br.y);
+    const vx = Math.min(a.x, b.x);
+    const vy = Math.min(a.y, b.y);
+    const vw = Math.abs(b.x - a.x);
+    const vh = Math.abs(b.y - a.y);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, cssW, cssH);
+    ctx.clip();
+    ctx.strokeStyle = "#c45a2a";
+    ctx.lineWidth = 1.3;
+    ctx.strokeRect(vx + 0.5, vy + 0.5, Math.max(vw, 4), Math.max(vh, 4));
+    ctx.fillStyle = "rgba(196,90,42,0.08)";
+    ctx.fillRect(vx, vy, Math.max(vw, 4), Math.max(vh, 4));
+    ctx.restore();
+  }
+
+  function miniToWorld(clientX, clientY) {
+    const m = state.mini;
+    if (!m || !els.minimap) return null;
+    const r = els.minimap.getBoundingClientRect();
+    const mx = ((clientX - r.left) / r.width) * m.cssW;
+    const my = ((clientY - r.top) / r.height) * m.cssH;
+    return {
+      x: m.minX + (mx - m.ox) / m.scale,
+      y: m.minY + (my - m.oy) / m.scale,
+    };
+  }
+
+  function centerViewOn(wx, wy, persistAfter) {
+    const rect = els.viewport.getBoundingClientRect();
+    state.view.x = rect.width / 2 - wx * state.view.scale;
+    state.view.y = rect.height / 2 - wy * state.view.scale;
+    applyView();
+    if (persistAfter) persist();
+  }
+
+  function setupMinimap() {
+    if (!els.minimap) return;
+    els.minimap.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      els.minimap.setPointerCapture(ev.pointerId);
+      state.miniDrag = true;
+      const w = miniToWorld(ev.clientX, ev.clientY);
+      if (w) centerViewOn(w.x, w.y, false);
+    });
+    els.minimap.addEventListener("pointermove", (ev) => {
+      if (!state.miniDrag) return;
+      const w = miniToWorld(ev.clientX, ev.clientY);
+      if (w) centerViewOn(w.x, w.y, false);
+    });
+    els.minimap.addEventListener("pointerup", () => {
+      if (state.miniDrag) persist();
+      state.miniDrag = false;
+    });
+    els.minimap.addEventListener("pointercancel", () => {
+      state.miniDrag = false;
+    });
+  }
+
   /* ---------- viewport input ---------- */
 
   function setupInput() {
@@ -1288,6 +1530,8 @@
     });
 
     window.addEventListener("pointermove", (ev) => {
+      state.pointer.x = ev.clientX;
+      state.pointer.y = ev.clientY;
       if (state.linkFrom) moveRubber(ev.clientX, ev.clientY);
     });
 
@@ -1396,6 +1640,11 @@
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c") {
         ev.preventDefault();
         copySelection();
+        return;
+      }
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "x") {
+        ev.preventDefault();
+        cutSelection();
         return;
       }
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "v") {
@@ -1583,13 +1832,25 @@
   }
 
   function setupMenu() {
+    if (els.mapTitle) {
+      els.mapTitle.addEventListener("change", () => setMapTitle(els.mapTitle.value));
+      els.mapTitle.addEventListener("blur", () => setMapTitle(els.mapTitle.value));
+      els.mapTitle.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") els.mapTitle.blur();
+        if (ev.key === "Escape") {
+          els.mapTitle.value = state.title || "Prep Map";
+          els.mapTitle.blur();
+        }
+      });
+    }
+
     els.btnExport.addEventListener("click", () => {
       const blob = new Blob([JSON.stringify(serializeAll(), null, 2)], {
         type: "application/json",
       });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "prep-map.json";
+      a.download = fileSlug(state.title) + ".json";
       a.click();
       URL.revokeObjectURL(a.href);
       toast("Exported");
@@ -1606,6 +1867,10 @@
         if (!data || typeof data !== "object") throw new Error("bad");
         pushHistory();
         applyAll(data);
+        if (!data.title && file.name) {
+          state.title = file.name.replace(/\.json$/i, "").trim() || state.title;
+          syncMapTitle();
+        }
         state.selectedId = null;
         render();
         persist();
@@ -1753,6 +2018,7 @@
     setupInspector();
     setupInput();
     setupMenu();
+    setupMinimap();
     await restore();
     normalizeBoard();
     const params = new URLSearchParams(location.search);
@@ -1770,6 +2036,7 @@
       centerCamera();
     }
     if (state.hintHidden) els.hint.classList.add("gone");
+    syncMapTitle();
     render();
     requestAnimationFrame(() => {
       const q = new URLSearchParams(location.search);

@@ -624,6 +624,18 @@ textarea.ruled:focus { outline: 1px solid var(--ink-faint); }
   font-family: var(--font-display);
   font-size: 18px;
   letter-spacing: 0.04em;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+  margin: 0;
+}
+.wordmark:hover { color: var(--select); }
+.wordmark:focus {
+  outline: none;
+  border-bottom: 1px solid var(--ink);
+  color: var(--ink);
 }
 
 .wordmark-sub {
@@ -834,6 +846,21 @@ textarea.ruled:focus { outline: 1px solid var(--ink-faint); }
 }
 .help p { margin: 0 0 6px; }
 .help p:last-child { margin: 0; }
+
+.minimap {
+  position: absolute;
+  top: 14px;
+  right: calc(var(--rail-w) + 16px);
+  width: 196px;
+  height: 132px;
+  background: rgba(244, 236, 218, 0.94);
+  border: 1.4px solid var(--ink);
+  box-shadow: 2px 3px 0 var(--shadow);
+  z-index: 16;
+  cursor: pointer;
+  display: block;
+}
+.minimap:active { cursor: grabbing; }
 
 .history-bar {
   position: absolute;
