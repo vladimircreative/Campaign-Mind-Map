@@ -14,7 +14,7 @@ Double-click `index.html`. Or drop the folder on GitHub Pages / Netlify / `pytho
 
 Click the title in the right rail and name the campaign. Export uses that name.
 
-After a Clear, add `?demo=1` to the URL for a dense sample board, or `?story=1` … `?story=7` to walk the campaign below.
+After a Clear, add `?demo=1` to the URL for a dense sample board, or `?story=1` … `?story=8` to walk the campaign below.
 
 Press **?** any time for the cheat sheet.
 
@@ -96,6 +96,14 @@ The pasted events sit exactly on their Session 1 twins. The new locations take t
 ![All pages: overlapping aftermath events, new locations in open space](screenshots/07-all-pages.png)
 
 *One map, two sessions. Events stack. Places don’t fight.*
+
+### 8. Enrich the map
+
+Click the line between **Ambush** and **Hunt the rider**. That drops a small subnode on the link, already tied to both ends. Name it. Write the beat.
+
+![Subnode Dust trail on the Ambush–Hunt the rider link, notes open](screenshots/08-subnode.png)
+
+*Dust trail sits on the line. One horse left the road. The two events stay linked through it.*
 
 ---
 
@@ -243,7 +251,7 @@ If you’re typing in a field, the keys stay with the field.
 - Schema migration so older boards still open.
 - Export / Import JSON.
 - Clear the board (export first; Clear is not on the undo stack).
-- `?demo=1` reseeds a dense sample. `?story=N` reseeds the campaign in this README.
+- `?demo=1` reseeds a dense sample. `?story=N` reseeds step N of the campaign in this README.
 
 ### Help and chrome
 
