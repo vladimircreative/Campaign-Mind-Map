@@ -18,9 +18,9 @@ After a Clear, add `?demo=1` to the URL to load the sample board (convoy, raider
 
 Press **?** any time for the cheat sheet.
 
-![Empty first-run canvas with toolbar, pages rail, and export](screenshots/20-ux-board.png)
+![Empty first-run canvas with toolbar, navigator, pages rail, and export](screenshots/20-empty.png)
 
-*First open. Paper, a right rail, Undo / Redo / Fit / ? in the corner. Double-click the page.*
+*First open. Paper, navigator, a right rail, Undo / Redo / Fit / ? in the corner. Double-click the page.*
 
 ---
 
@@ -37,9 +37,9 @@ You have a one-shot next week and three names on a napkin.
 
 New nodes shove neighbours a little so they don’t sit on top of each other. **F** frames whatever is on the current page.
 
-![Full board with help overlay, inspector on Convoy, session pages and tags](screenshots/21-ux-help.png)
+![Full Salt Road board with help overlay, inspector on Convoy, navigator, session pages and tags](screenshots/21-board-help.png)
 
-*A session already in motion. Help sheet top-left. Inspector on the event. Pages and tags on the right.*
+*A session already in motion. Help sheet top-left. Inspector on the event. Navigator top-right. Pages and tags on the rail.*
 
 ### 2. Between sessions — write it down, don’t lose the thread
 
@@ -49,9 +49,9 @@ Click a node. The notes sheet docks bottom-left: name, type, **thread** (is this
 - **Close thread** greys it and crosses the name. It stays on the board so you remember it fired.
 - Gold ring = the fork they didn’t take. Dashed empty ring = a name nobody will say. Hatched dashed = you heard it, you don’t know it.
 
-![Inspector open on Blackout — resolved thread, dead condition](screenshots/22-ux-inspector.png)
+![Inspector open on Blackout — resolved thread, dead condition, navigator visible](screenshots/22-inspector.png)
 
-*Blackout is resolved and dead. The disc is grey. The notes still say how.*
+*Blackout is resolved and dead. The disc is grey. The notes still say how. Campaign title is Salt Road.*
 
 ### 3. At the table — find the gang without hunting
 
@@ -60,7 +60,7 @@ Stick `#raiders` on whoever deserves it. The rail lists tags.
 - Click a name under a tag to jump there (canvas moves, notes open).
 - Click the **#RAIDERS** header to light the whole gang and dim the rest. Click again (or select something off-tag) to drop the highlight.
 
-![Tag highlight: #RAIDERS members ringed, the rest of the board dimmed](screenshots/02-tag-highlight.png)
+![Tag highlight: #RAIDERS members ringed, the rest of the board dimmed](screenshots/23-tags.png)
 
 *Click the tag header. Related nodes stay bright. Everything else steps back.*
 
@@ -73,15 +73,15 @@ Right rail, **Pages**.
 - Paste lands on the page you’re looking at. Box-select a clique in Session 1, **Ctrl+C**, switch to Session 2, **Ctrl+V** — they’ve moved house. Links between the copied nodes come along. Links out to the rest of the board do not.
 - **×** deletes that session **and everything that lived on it**. Undo if you flinch. You can’t delete the last page.
 
-![Session 1 filtered — Session 2 ghost is off the sheet](screenshots/13-page-s1.png)
+![Session 1 filtered — Session 2 ghost is off the sheet](screenshots/24-session.png)
 
-*Session 1 only. The third rider can live on Session 2 until you need the whole map.*
+*Session 1 only. The third rider lives on Session 2 until you need the whole map.*
 
 ### 5. Glance without opening the sheet
 
 Hover. First line of notes, type, and thread. Good when you’re mid-sentence and just need “what was the salt road again.”
 
-![Hover card over Convoy with excerpt](screenshots/11-hover.png)
+![Hover card over Convoy with excerpt](screenshots/25-hover.png)
 
 *Cursor on Convoy. Excerpt under the hand. Inspector can stay closed.*
 
@@ -91,7 +91,7 @@ Type sets the fill. Thread sets the ring. People get a small mark in front of th
 
 Subnodes are the small pills on the lines. Planted links are dashed.
 
-![Latest board language: type fills, vitality marks, ghost ring, missed gold](screenshots/40-icons.png)
+![Current board language: type fills, vitality marks, ghost ring, missed gold, navigator](screenshots/26-board.png)
 
 *Convoy is an event. Blackout is resolved and dead. The third rider is a ghost. Ask the widow is the fork they missed.*
 

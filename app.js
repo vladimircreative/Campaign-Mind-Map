@@ -1289,10 +1289,12 @@
     }
     const bw = Math.max(maxX - minX, 200);
     const bh = Math.max(maxY - minY, 200);
-    const padL = 40;
-    const padR = 40;
-    const padT = 64;
-    const padB = 40;
+    const insp = els.inspector && !els.inspector.hidden ? els.inspector.getBoundingClientRect().width : 0;
+    const help = els.help && !els.help.hidden ? els.help.getBoundingClientRect().width : 0;
+    const padL = 48 + Math.max(insp, help);
+    const padR = 48;
+    const padT = 72;
+    const padB = 48;
     const scale = Math.min(1.25, Math.max(0.35, Math.min((w - padL - padR) / bw, (h - padT - padB) / bh)));
     state.view.scale = scale;
     state.view.x = padL + (w - padL - padR) / 2 - ((minX + maxX) / 2) * scale;
@@ -2000,6 +2002,8 @@
     state.selectedId = convoy;
     state.highlightTag = null;
     state.hintHidden = true;
+    state.title = "Salt Road";
+    syncMapTitle();
     centerCamera();
   }
 
@@ -2012,6 +2016,96 @@
     state.view.y = h / 2;
   }
 
+  function frameBoard() {
+    const inspW = els.inspector && !els.inspector.hidden ? els.inspector.getBoundingClientRect().width : 0;
+    const helpW = els.help && !els.help.hidden ? els.help.getBoundingClientRect().width : 0;
+    const left = Math.max(inspW, helpW);
+    const w = Math.max(els.viewport.clientWidth || window.innerWidth - 232, 800);
+    const h = Math.max(els.viewport.clientHeight || window.innerHeight, 600);
+    const vis = Object.values(state.nodes).filter(visibleNode);
+    if (!vis.length) {
+      state.view.scale = 1;
+      state.view.x = w / 2;
+      state.view.y = h / 2;
+      applyView();
+      return;
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of vis) {
+      const r = radiusOf(n) + 28;
+      minX = Math.min(minX, n.x - r);
+      minY = Math.min(minY, n.y - r);
+      maxX = Math.max(maxX, n.x + r);
+      maxY = Math.max(maxY, n.y + r);
+    }
+    const bw = Math.max(maxX - minX, 240);
+    const bh = Math.max(maxY - minY, 240);
+    const padL = 36 + left;
+    const padR = 36;
+    const padT = 80;
+    const padB = 36;
+    const scale = Math.min(1.15, Math.max(0.55, Math.min((w - padL - padR) / bw, (h - padT - padB) / bh)));
+    state.view.scale = scale;
+    state.view.x = padL + (w - padL - padR) / 2 - ((minX + maxX) / 2) * scale;
+    state.view.y = padT + (h - padT - padB) / 2 - ((minY + maxY) / 2) * scale;
+    applyView();
+  }
+
+  function applyShot(q) {
+    const shot = q.get("shot") || "";
+    if (shot === "empty") {
+      state.nodes = {};
+      state.edges = {};
+      state.pages = [{ id: "page-s1", title: "Session 1" }];
+      state.currentPageId = "all";
+      state.selectedId = null;
+      state.selectedIds = new Set();
+      state.highlightTag = null;
+      state.title = "Prep Map";
+      state.hintHidden = false;
+      if (els.hint) {
+        els.hint.hidden = false;
+        els.hint.classList.remove("gone");
+      }
+      if (els.help) els.help.hidden = true;
+      if (els.inspector) els.inspector.hidden = true;
+      syncMapTitle();
+      render();
+      frameBoard();
+      return;
+    }
+    if (q.get("demo") === "1" || Object.keys(state.nodes).length) {
+      if (shot === "help" && els.help) els.help.hidden = false;
+      else if (els.help && shot) els.help.hidden = true;
+      if (shot === "board") {
+        state.selectedId = null;
+        state.selectedIds = new Set();
+        if (els.inspector) els.inspector.hidden = true;
+        render();
+      }
+      frameBoard();
+    } else {
+      applyView();
+    }
+    if (shot === "hover") {
+      const id = q.get("select") || "convoy";
+      state.selectedId = null;
+      state.selectedIds = new Set();
+      if (els.inspector) els.inspector.hidden = true;
+      render();
+      frameBoard();
+      showHover(id);
+      const node = state.nodes[id];
+      if (node) {
+        const sx = state.view.x + node.x * state.view.scale;
+        const sy = state.view.y + node.y * state.view.scale - 86;
+        placeHover(Math.max(420, sx), Math.max(140, sy));
+      } else {
+        placeHover(640, 340);
+      }
+    }
+  }
+
   /* ---------- boot ---------- */
 
   async function boot() {
@@ -2019,17 +2113,26 @@
     setupInput();
     setupMenu();
     setupMinimap();
-    await restore();
-    normalizeBoard();
     const params = new URLSearchParams(location.search);
-    if (params.get("demo") === "1") {
+    const wantDemo = params.get("demo") === "1";
+    const wantEmpty = params.get("shot") === "empty";
+    if (wantDemo || wantEmpty) {
+      // Skip restore so screenshots / demo URLs are not poisoned by the last board.
+    } else {
+      await restore();
+    }
+    normalizeBoard();
+    if (wantDemo) {
       loadDemo();
       const hl = params.get("tag");
       if (hl) state.highlightTag = hl.toLowerCase();
       const page = params.get("page");
       if (page) state.currentPageId = page;
       const sel = params.get("select");
-      if (sel && state.nodes[sel]) state.selectedId = sel;
+      if (sel && state.nodes[sel]) {
+        state.selectedId = sel;
+        state.selectedIds = new Set([sel]);
+      }
     }
     // center empty board
     if (!Object.keys(state.nodes).length && state.view.x === 0 && state.view.y === 0) {
@@ -2040,17 +2143,12 @@
     render();
     requestAnimationFrame(() => {
       const q = new URLSearchParams(location.search);
-      if (q.get("demo") === "1") fitView();
-      else applyView();
-      if (q.get("shot") === "hover") {
-        showHover(q.get("select") || "convoy");
-        placeHover(620, 360);
-      }
-      if (q.get("shot") === "help" && els.help) els.help.hidden = false;
+      applyShot(q);
     });
     els.viewport.focus();
     syncHistoryButtons();
     state.ready = true;
+    document.documentElement.dataset.ready = "1";
     window.PrepMap = {
       state,
       createNode,
@@ -2059,6 +2157,11 @@
       focusNode,
       render,
       persist,
+      fitView,
+      applyView,
+      showHover,
+      placeHover,
+      loadDemo,
     };
   }
 
