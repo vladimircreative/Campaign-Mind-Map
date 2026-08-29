@@ -26,13 +26,27 @@
     <aside id="inspector" class="inspector" hidden>
       <button type="button" class="inspector-close" id="inspector-close" title="Close" aria-label="Close inspector">×</button>
       <header class="inspector-head">
+        <span id="insp-title-icon" class="cond-icon" hidden></span>
         <input id="insp-title" class="inspector-title" type="text" maxlength="80" placeholder="Name" />
       </header>
 
-      <label class="field-label" for="insp-type">Type</label>
-      <div class="type-row">
-        <select id="insp-type"></select>
+      <div class="insp-grid">
+        <div>
+          <label class="field-label" for="insp-type">Type</label>
+          <select id="insp-type"></select>
+        </div>
+        <div>
+          <label class="field-label" for="insp-status">Thread</label>
+          <select id="insp-status"></select>
+        </div>
+        <div id="insp-vital-wrap" hidden>
+          <label class="field-label" for="insp-vital">Condition</label>
+          <select id="insp-vital"></select>
+        </div>
+      </div>
+      <div class="insp-kind-row">
         <span id="insp-kind" class="kind-pill"></span>
+        <button type="button" id="insp-close-thread" class="btn-quiet" title="Mark resolved, keep on the board">Close thread</button>
       </div>
 
       <label class="field-label">Linked</label>
@@ -58,8 +72,18 @@
         <div class="wordmark">Prep Map</div>
         <div class="wordmark-sub">saved in this browser</div>
       </header>
-      <div id="tag-list" class="tag-list">
-        <p class="rail-empty">No tags yet. Add them in a node’s notes panel.</p>
+      <div class="rail-section">
+        <div class="rail-section-head">
+          <span>Pages</span>
+          <button type="button" id="btn-new-page" class="btn-tiny" title="New session page">+</button>
+        </div>
+        <div id="page-list" class="page-list"></div>
+      </div>
+      <div class="rail-section">
+        <div class="rail-section-head"><span>Tags</span></div>
+        <div id="tag-list" class="tag-list">
+          <p class="rail-empty">No tags yet. Add them in a node’s notes panel.</p>
+        </div>
       </div>
       <footer class="rail-foot">
         <button type="button" id="btn-export" title="Download JSON">Export</button>
@@ -72,11 +96,22 @@
     <div id="history-bar" class="history-bar">
       <button type="button" id="btn-undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
       <button type="button" id="btn-redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
+      <button type="button" id="btn-fit" title="Frame all nodes (F)">Fit</button>
+      <button type="button" id="btn-help" title="Shortcuts">?</button>
     </div>
+    <div id="help" class="help" hidden>
+      <p><b>Double-click</b> empty paper — new node</p>
+      <p><b>Drag empty paper</b> — select · <b>Middle-drag</b> — pan</p>
+      <p><b>Drag the ring</b> — link · <b>Alt</b> while linking — planted (dashed)</p>
+      <p><b>Click a line</b> — drop a subnode · <b>Alt-click</b> line — dash it · <b>Shift-click</b> line — delete</p>
+      <p><b>Shift-click</b> a node — link to the selected one</p>
+      <p><b>Ctrl+C / Ctrl+V</b> copy · paste onto the current page</p>
+      <p><b>Ctrl+Z / Ctrl+Y</b> undo · <b>F</b> frame all · <b>Esc</b> deselect</p>
+    </div>
+    <div id="marquee" class="marquee" hidden></div>
+    <div id="hovercard" class="hovercard" hidden></div>
     <div id="toast" class="toast" hidden></div>
-    <div id="hint" class="hint">
-      Double-click the page to add a node. Click a ring to draw a link. Click a line to drop a subnode.
-    </div>
+    <div id="hint" class="hint gone" hidden></div>
   </div>
 
   <script src="app.js"></script>

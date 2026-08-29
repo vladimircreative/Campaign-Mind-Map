@@ -18,10 +18,39 @@
     note: `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 5.5h10v13H7z"/><path d="M9.5 9h5M9.5 12.5h5M9.5 16h3.2"/></svg>`,
   };
 
+  const STATUSES = [
+    { id: "live", label: "Live" },
+    { id: "resolved", label: "Resolved" },
+    { id: "missed", label: "Missed" },
+    { id: "rumor", label: "Rumor" },
+    { id: "ghost", label: "Ghost" },
+  ];
+
+  const VITALS = [
+    { id: "alive", label: "Alive" },
+    { id: "missing", label: "Missing" },
+    { id: "compromised", label: "Compromised" },
+    { id: "dead", label: "Dead" },
+  ];
+
+  const VITAL_ICONS = {
+    alive: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 13.2S2.8 9.6 2.8 6.2A2.8 2.8 0 0 1 8 4.6a2.8 2.8 0 0 1 5.2 1.6c0 3.4-5.2 7-5.2 7z"/></svg>`,
+    missing: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.4"/><path d="M8 5.2v.3M8 7.2V11"/></svg>`,
+    compromised: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2.6 14.2 13H1.8L8 2.6z"/><path d="M8 6.6v3.1M8 11.4v.3"/></svg>`,
+    dead: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7.2" r="3.6"/><path d="M5.4 6.6h.1M10.5 6.6h.1M5.8 8.4c.7.8 1.7 1.2 2.2 1.2s1.5-.4 2.2-1.2M4.6 11.4c1 .9 2.2 1.4 3.4 1.4s2.4-.5 3.4-1.4"/></svg>`,
+  };
+
+  const PENCIL = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.2 3.2 12.8 5.8 6 12.6H3.4V10z"/><path d="M9 4.4 11.6 7"/></svg>`;
+
+  function vitalIcon(id) {
+    return `<span class="cond-icon" title="${escapeAttr(id || "alive")}">${VITAL_ICONS[id] || VITAL_ICONS.alive}</span>`;
+  }
+
   const LINK_MARK = `<svg class="mark" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.2 9.8 4.4 8a2.4 2.4 0 0 1 3.4-3.4l1.3 1.3"/><path d="M9.8 6.2 11.6 8a2.4 2.4 0 0 1-3.4 3.4L6.9 10.1"/></svg>`;
 
   const NODE_R = 58;
-  const SUB_R = 36;
+  const SUB_RX = 54;
+  const SUB_RY = 24;
   const BORDER = 12;
   const DB_NAME = "prep-map";
   const STORE = "maps";
@@ -38,8 +67,22 @@
     rubber: $("rubber"),
     inspector: $("inspector"),
     inspTitle: $("insp-title"),
+    inspTitleIcon: $("insp-title-icon"),
     inspType: $("insp-type"),
+    inspStatus: $("insp-status"),
+    inspVital: $("insp-vital"),
+    inspVitalWrap: $("insp-vital-wrap"),
+    inspCloseThread: $("insp-close-thread"),
     inspKind: $("insp-kind"),
+    inspPage: $("insp-page"),
+    pageList: $("page-list"),
+    btnNewPage: $("btn-new-page"),
+    btnFit: $("btn-fit"),
+    btnHelp: $("btn-help"),
+    help: $("help"),
+    hovercard: $("hovercard"),
+    marquee: $("marquee"),
+    inspVitalIcon: $("insp-vital-icon"),
     inspLinks: $("insp-links"),
     inspTags: $("insp-tags"),
     inspTagInput: $("insp-tag-input"),
@@ -71,6 +114,18 @@
     saveTimer: null,
     ready: false,
     hintHidden: false,
+    pages: [],
+    currentPageId: "all",
+    linkPlanted: false,
+    hoverTimer: null,
+    hoverId: null,
+    pointer: { x: 0, y: 0 },
+    selectedIds: new Set(),
+    clipboard: null,
+    pasteN: 1,
+    renamingPage: null,
+    marquee: null,
+    spaceDown: false,
   };
 
   function uid() {
@@ -78,7 +133,13 @@
   }
 
   function radiusOf(node) {
-    return node.kind === "subnode" ? SUB_R : NODE_R;
+    return node.kind === "subnode" ? Math.max(SUB_RX, SUB_RY) : NODE_R;
+  }
+
+  function radiiOf(node) {
+    return node && node.kind === "subnode"
+      ? { rx: SUB_RX, ry: SUB_RY }
+      : { rx: NODE_R, ry: NODE_R };
   }
 
   function typeLabel(id) {
@@ -93,6 +154,8 @@
     return JSON.stringify({
       nodes: state.nodes,
       edges: state.edges,
+      pages: state.pages,
+      currentPageId: state.currentPageId,
     });
   }
 
@@ -100,6 +163,42 @@
     const data = JSON.parse(json);
     state.nodes = data.nodes || {};
     state.edges = data.edges || {};
+    if (data.pages) state.pages = data.pages;
+    if (data.currentPageId) state.currentPageId = data.currentPageId;
+    normalizeBoard();
+  }
+
+  function normalizeNode(n) {
+    if (!n.status) n.status = "live";
+    if (!n.vitality) n.vitality = "alive";
+    if (!n.pageId && state.pages[0]) n.pageId = state.pages[0].id;
+    if (typeof n.seen !== "boolean") n.seen = true;
+    return n;
+  }
+
+  function normalizeEdge(e) {
+    if (!e.style) e.style = "solid";
+    return e;
+  }
+
+  function ensurePages() {
+    if (!Array.isArray(state.pages) || !state.pages.length) {
+      const p = { id: uid(), title: "Session 1" };
+      state.pages = [p];
+    }
+    if (!state.currentPageId) state.currentPageId = "all";
+  }
+
+  function normalizeBoard() {
+    ensurePages();
+    for (const n of Object.values(state.nodes)) normalizeNode(n);
+    for (const e of Object.values(state.edges)) normalizeEdge(e);
+  }
+
+  function visibleNode(n) {
+    if (!n) return false;
+    if (state.currentPageId === "all") return true;
+    return n.pageId === state.currentPageId;
   }
 
   function pushHistory() {
@@ -174,9 +273,11 @@
 
   function serializeAll() {
     return {
-      version: 1,
+      version: 2,
       nodes: state.nodes,
       edges: state.edges,
+      pages: state.pages,
+      currentPageId: state.currentPageId,
       view: { ...state.view },
       hintHidden: state.hintHidden,
     };
@@ -186,12 +287,15 @@
     if (!data || typeof data !== "object") return;
     state.nodes = data.nodes || {};
     state.edges = data.edges || {};
+    state.pages = data.pages || [];
+    state.currentPageId = data.currentPageId || "all";
     if (data.view) {
       state.view.x = data.view.x || 0;
       state.view.y = data.view.y || 0;
       state.view.scale = data.view.scale || 1;
     }
     if (data.hintHidden) hideHint(true);
+    normalizeBoard();
   }
 
   function persist() {
@@ -309,6 +413,13 @@
       y,
       tags: [],
       description: "",
+      status: "live",
+      vitality: "alive",
+      seen: false,
+      pageId:
+        state.currentPageId !== "all"
+          ? state.currentPageId
+          : (state.pages[0] && state.pages[0].id) || null,
     };
     state.nodes[node.id] = node;
     nudgeNew(node.id);
@@ -323,7 +434,7 @@
     return node;
   }
 
-  function connect(a, b) {
+  function connect(a, b, style) {
     if (!a || !b || a === b) return;
     if (!state.nodes[a] || !state.nodes[b]) return;
     if (hasEdge(a, b)) {
@@ -332,7 +443,12 @@
       return;
     }
     pushHistory();
-    const e = { id: uid(), a, b };
+    const e = {
+      id: uid(),
+      a,
+      b,
+      style: style || (state.linkPlanted ? "planted" : "solid"),
+    };
     state.edges[e.id] = e;
     cancelLink();
     render();
@@ -357,6 +473,10 @@
       y: mid.y,
       tags: [],
       description: "",
+      status: "live",
+      vitality: "alive",
+      seen: false,
+      pageId: a.pageId || (state.pages[0] && state.pages[0].id) || null,
     };
     state.nodes[node.id] = node;
     const e1 = { id: uid(), a: e.a, b: node.id };
@@ -374,16 +494,81 @@
     });
   }
 
-  function deleteNode(id) {
+  function deleteNode(id, { history } = { history: true }) {
     if (!state.nodes[id]) return;
-    pushHistory();
+    if (history !== false) pushHistory();
     delete state.nodes[id];
     for (const [eid, e] of Object.entries(state.edges)) {
       if (e.a === id || e.b === id) delete state.edges[eid];
     }
     if (state.selectedId === id) state.selectedId = null;
+    if (state.selectedIds) state.selectedIds.delete(id);
+    if (history !== false) {
+      render();
+      persist();
+    }
+  }
+
+  function deleteSelected() {
+    const ids = [...selectedSet()];
+    if (!ids.length) return;
+    pushHistory();
+    ids.forEach((id) => deleteNode(id, { history: false }));
     render();
     persist();
+  }
+
+  function copySelection() {
+    const ids = selectedSet();
+    if (!ids.size) return;
+    const nodes = [...ids]
+      .map((id) => state.nodes[id])
+      .filter(Boolean)
+      .map((n) => JSON.parse(JSON.stringify(n)));
+    const edges = Object.values(state.edges)
+      .filter((e) => ids.has(e.a) && ids.has(e.b))
+      .map((e) => JSON.parse(JSON.stringify(e)));
+    state.clipboard = { nodes, edges };
+    state.pasteN = 1;
+    toast("Copied " + nodes.length);
+  }
+
+  function pasteSelection() {
+    if (!state.clipboard || !state.clipboard.nodes.length) return;
+    pushHistory();
+    const map = {};
+    const pageId =
+      state.currentPageId !== "all"
+        ? state.currentPageId
+        : (state.pages[0] && state.pages[0].id) || null;
+    const ox = 40 * state.pasteN;
+    const oy = 40 * state.pasteN;
+    state.pasteN += 1;
+    const fresh = new Set();
+    for (const n of state.clipboard.nodes) {
+      const id = uid();
+      map[n.id] = id;
+      state.nodes[id] = Object.assign(JSON.parse(JSON.stringify(n)), {
+        id,
+        x: n.x + ox,
+        y: n.y + oy,
+        pageId,
+        seen: true,
+      });
+      fresh.add(id);
+    }
+    for (const e of state.clipboard.edges) {
+      const a = map[e.a];
+      const b = map[e.b];
+      if (!a || !b) continue;
+      const id = uid();
+      state.edges[id] = { id, a, b, style: e.style || "solid" };
+    }
+    state.selectedIds = fresh;
+    state.selectedId = [...fresh][0] || null;
+    render();
+    persist();
+    toast("Pasted");
   }
 
   function updateNode(id, patch) {
@@ -411,12 +596,14 @@
       const a = state.nodes[e.a];
       const b = state.nodes[e.b];
       if (!a || !b) continue;
+      if (!visibleNode(a) || !visibleNode(b)) continue;
       const from = rimPoint(a, b);
       const to = rimPoint(b, a);
+      const planted = e.style === "planted" ? "planted" : "";
       parts.push(
         `<g class="edge" data-id="${e.id}">
-          <line class="edge-hit" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
-          <line class="edge-vis" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
+          <line class="edge-hit ${planted}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
+          <line class="edge-vis ${planted}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />
         </g>`
       );
     }
@@ -434,6 +621,13 @@
         if (ev.shiftKey) {
           pushHistory();
           delete state.edges[id];
+          render();
+          persist();
+          return;
+        }
+        if (ev.altKey) {
+          pushHistory();
+          e.style = e.style === "planted" ? "solid" : "planted";
           render();
           persist();
           return;
@@ -467,21 +661,29 @@
       : null;
 
     const html = Object.values(state.nodes)
+      .filter(visibleNode)
       .map((n) => {
         const cls = [
           "node",
-          n.kind === "subnode" ? "sub" : "",
-          n.type,
-          n.id === state.selectedId ? "selected" : "",
+          n.kind === "subnode" ? "sub" : n.type,
+          "status-" + (n.status || "live"),
+          n.id === state.selectedId || (state.selectedIds && state.selectedIds.has(n.id)) ? "selected" : "",
           n.id === state.linkFrom ? "linking-src" : "",
           hot ? (hot.has(n.id) ? "tag-hot" : "dimmed") : "",
         ]
           .filter(Boolean)
           .join(" ");
         const title = escapeHtml(n.title || "Untitled");
+        const unread = n.seen === false ? `<span class="unread" title="Unread"></span>` : "";
+        const icon = n.kind === "subnode" ? "" : ICONS[n.type] || ICONS.note;
+        const cond =
+          n.kind !== "subnode" && n.type === "character"
+            ? vitalIcon(n.vitality || "alive") + " "
+            : "";
         return `<div class="${cls}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px">
-          ${ICONS[n.type] || ICONS.note}
-          <div class="label">${title}</div>
+          ${unread}
+          ${icon}
+          <div class="label">${cond}${title}</div>
         </div>`;
       })
       .join("");
@@ -498,28 +700,39 @@
       const node = state.nodes[id];
       if (!node) return;
       const world = screenToWorld(ev.clientX, ev.clientY);
-      const d = dist(world, node);
-      const onBorder = d >= radiusOf(node) - BORDER;
+      const onBorder = ellipseNorm(world, node) >= 0.78;
 
       if (state.linkFrom) {
         ev.preventDefault();
         return;
       }
 
+      hideHover();
       if (onBorder && !ev.shiftKey) {
         ev.preventDefault();
+        state.linkPlanted = ev.altKey;
         beginLink(id);
         return;
       }
 
+      const inGroup = selectedSet().has(id) && selectedSet().size > 1;
+      const ids = inGroup ? [...selectedSet()] : [id];
+      const origins = {};
+      ids.forEach((nid) => {
+        const nn = state.nodes[nid];
+        if (nn) origins[nid] = { x: nn.x, y: nn.y };
+      });
       state.dragging = {
         id,
+        ids,
+        origins,
         startX: ev.clientX,
         startY: ev.clientY,
         origX: node.x,
         origY: node.y,
         moved: false,
         shift: ev.shiftKey,
+        alt: ev.altKey,
       };
       el.setPointerCapture(ev.pointerId);
     });
@@ -533,12 +746,20 @@
         state.dragging.moved = true;
         pushHistory();
       }
-      const node = state.nodes[id];
-      node.x = state.dragging.origX + dx / state.view.scale;
-      node.y = state.dragging.origY + dy / state.view.scale;
-      el.style.left = node.x + "px";
-      el.style.top = node.y + "px";
-      // live-update edges without full rerender
+      const scale = state.view.scale || 1;
+      const ids = state.dragging.ids || [id];
+      for (const nid of ids) {
+        const n = state.nodes[nid];
+        const orig = state.dragging.origins && state.dragging.origins[nid];
+        if (!n || !orig) continue;
+        n.x = orig.x + dx / scale;
+        n.y = orig.y + dy / scale;
+        const nel = els.nodes.querySelector(`.node[data-id="${nid}"]`);
+        if (nel) {
+          nel.style.left = n.x + "px";
+          nel.style.top = n.y + "px";
+        }
+      }
       refreshEdgesOnly();
     });
 
@@ -558,6 +779,7 @@
         return;
       }
       if (drag.shift && state.selectedId && state.selectedId !== id) {
+        state.linkPlanted = drag.alt;
         connect(state.selectedId, id);
         selectNode(id);
         return;
@@ -570,10 +792,21 @@
       const node = state.nodes[id];
       if (!node) return;
       const world = screenToWorld(ev.clientX, ev.clientY);
-      const onBorder = dist(world, node) >= radiusOf(node) - BORDER;
+      const onBorder = ellipseNorm(world, node) >= 0.78;
       el.classList.toggle("on-ring", onBorder);
     });
-    el.addEventListener("pointerleave", () => el.classList.remove("on-ring"));
+    el.addEventListener("pointerleave", () => {
+      el.classList.remove("on-ring");
+      hideHover();
+    });
+    el.addEventListener("mouseenter", () => scheduleHover(id));
+    el.addEventListener("mousemove", (ev) => placeHover(ev.clientX, ev.clientY));
+    el.addEventListener("dblclick", (ev) => {
+      ev.stopPropagation();
+      selectNode(id);
+      els.inspTitle.focus();
+      els.inspTitle.select();
+    });
 
     el.addEventListener("dblclick", (ev) => ev.stopPropagation());
   }
@@ -606,13 +839,35 @@
     if (document.activeElement !== els.inspTitle) {
       els.inspTitle.value = n.title || "";
     }
+    if (els.inspTitleIcon) {
+      const show = n.type === "character";
+      els.inspTitleIcon.hidden = !show;
+      if (show) els.inspTitleIcon.innerHTML = VITAL_ICONS[n.vitality || "alive"] || "";
+    }
     if (document.activeElement !== els.inspDesc) {
       els.inspDesc.value = n.description || "";
+    }
+    if (els.inspDesc) {
+      els.inspDesc.style.backgroundPosition = "0 " + -els.inspDesc.scrollTop + "px";
     }
     if (document.activeElement !== els.inspType) {
       els.inspType.value = n.type;
     }
-    els.inspKind.textContent = n.kind === "subnode" ? "Subnode" : "Node";
+    if (els.inspStatus && document.activeElement !== els.inspStatus) {
+      els.inspStatus.value = n.status || "live";
+    }
+    els.inspKind.textContent = n.kind === "subnode" ? "Subnode" : "";
+    els.inspKind.hidden = n.kind !== "subnode";
+    if (els.inspCloseThread) {
+      els.inspCloseThread.hidden = (n.status || "live") === "resolved";
+    }
+    if (els.inspVitalWrap) {
+      const showVital = n.type === "character";
+      els.inspVitalWrap.hidden = !showVital;
+      if (showVital && document.activeElement !== els.inspVital) {
+        els.inspVital.value = n.vitality || "alive";
+      }
+    }
 
     const links = neighbors(n.id)
       .map((nid) => state.nodes[nid])
@@ -652,8 +907,10 @@
   }
 
   function renderRail() {
+    renderPages();
     const groups = {};
     for (const n of Object.values(state.nodes)) {
+      if (!visibleNode(n)) continue;
       for (const raw of n.tags || []) {
         const t = raw.trim();
         if (!t) continue;
@@ -700,19 +957,145 @@
     });
   }
 
-  function selectNode(id, { skipRender } = {}) {
-    state.selectedId = id;
+  function pageCount(id) {
+    return Object.values(state.nodes).filter((n) => n.pageId === id).length;
+  }
+
+  function renderPages() {
+    if (!els.pageList) return;
+    ensurePages();
+    const allCount = Object.keys(state.nodes).length;
+    const rows = [`<div class="page-item ${state.currentPageId === "all" ? "active" : ""}" data-id="all">
+      <span class="page-name">All pages</span>
+      <span class="page-count">${allCount}</span>
+    </div>`];
+    for (const p of state.pages) {
+      const active = state.currentPageId === p.id ? "active" : "";
+      const editing = state.renamingPage === p.id;
+      const name = editing
+        ? `<input class="page-name" data-id="${p.id}" value="${escapeAttr(p.title)}" maxlength="32" />`
+        : `<span class="page-title">${escapeHtml(p.title)}</span>
+           <button type="button" class="page-edit" data-id="${p.id}" title="Rename">${PENCIL}</button>`;
+      rows.push(`<div class="page-item ${active}" data-id="${p.id}">
+        ${name}
+        <span class="page-count">${pageCount(p.id)}</span>
+        ${state.pages.length > 1 ? `<button type="button" class="page-x" data-id="${p.id}" title="Delete page and its nodes">×</button>` : ""}
+      </div>`);
+    }
+    els.pageList.innerHTML = rows.join("");
+    els.pageList.querySelectorAll(".page-item").forEach((el) => {
+      el.addEventListener("click", (ev) => {
+        if (ev.target.closest("button") || ev.target.tagName === "INPUT") return;
+        state.currentPageId = el.dataset.id;
+        state.highlightTag = null;
+        state.renamingPage = null;
+        render();
+        persist();
+      });
+    });
+    els.pageList.querySelectorAll(".page-edit").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        state.renamingPage = btn.dataset.id;
+        renderPages();
+        const inp = els.pageList.querySelector("input.page-name");
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+      });
+    });
+    els.pageList.querySelectorAll("input.page-name").forEach((inp) => {
+      const commit = () => {
+        const page = state.pages.find((p) => p.id === inp.dataset.id);
+        if (page) {
+          pushHistory();
+          page.title = inp.value.trim() || page.title;
+        }
+        state.renamingPage = null;
+        renderRail();
+        persist();
+      };
+      inp.addEventListener("change", commit);
+      inp.addEventListener("blur", commit);
+      inp.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") inp.blur();
+        if (ev.key === "Escape") {
+          state.renamingPage = null;
+          renderPages();
+        }
+      });
+      inp.addEventListener("click", (ev) => ev.stopPropagation());
+    });
+    els.pageList.querySelectorAll(".page-x").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        deletePage(btn.dataset.id);
+      });
+    });
+  }
+
+  function deletePage(id) {
+    if (state.pages.length < 2) return;
+    const page = state.pages.find((p) => p.id === id);
+    if (!page) return;
+    pushHistory();
+    const doomed = Object.values(state.nodes).filter((n) => n.pageId === id);
+    const ids = new Set(doomed.map((n) => n.id));
+    doomed.forEach((n) => delete state.nodes[n.id]);
+    for (const [eid, e] of Object.entries(state.edges)) {
+      if (ids.has(e.a) || ids.has(e.b)) delete state.edges[eid];
+    }
+    if (state.selectedIds) {
+      ids.forEach((nid) => state.selectedIds.delete(nid));
+    }
+    if (ids.has(state.selectedId)) state.selectedId = null;
+    state.pages = state.pages.filter((p) => p.id !== id);
+    if (state.currentPageId === id) state.currentPageId = "all";
+    render();
+    persist();
+    toast(page.title + " deleted" + (doomed.length ? " · " + doomed.length + " nodes" : ""));
+  }
+
+  function addPage() {
+    pushHistory();
+    ensurePages();
+    const n = state.pages.length + 1;
+    const page = { id: uid(), title: "Session " + n };
+    state.pages.push(page);
+    state.currentPageId = page.id;
+    render();
+    persist();
+    toast("New page");
+  }
+
+  function selectNode(id, { skipRender, add } = {}) {
+    const n = state.nodes[id];
+    if (!n) return;
+    if (n.seen === false) n.seen = true;
+    if (add) {
+      state.selectedIds.add(id);
+      state.selectedId = id;
+    } else {
+      state.selectedIds = new Set([id]);
+      state.selectedId = id;
+    }
     if (state.highlightTag) {
-      const n = state.nodes[id];
-      const inGroup =
-        n && (n.tags || []).some((t) => normTag(t) === state.highlightTag);
+      const inGroup = (n.tags || []).some((t) => normTag(t) === state.highlightTag);
       if (!inGroup) state.highlightTag = null;
     }
     if (!skipRender) render();
   }
 
+  function selectedSet() {
+    const ids = new Set(state.selectedIds || []);
+    if (state.selectedId) ids.add(state.selectedId);
+    return ids;
+  }
+
   function deselect() {
     state.selectedId = null;
+    state.selectedIds = new Set();
     renderInspector();
     renderNodes();
   }
@@ -742,15 +1125,24 @@
     els.rubber.setAttribute("y1", n.y);
     els.rubber.setAttribute("x2", n.x);
     els.rubber.setAttribute("y2", n.y);
+    els.rubber.classList.toggle("planted", !!state.linkPlanted);
     renderNodes();
   }
 
   function rimPoint(node, toward) {
-    const r = radiusOf(node);
     const dx = toward.x - node.x;
     const dy = toward.y - node.y;
     const d = Math.hypot(dx, dy) || 1;
-    return { x: node.x + (dx / d) * r, y: node.y + (dy / d) * r };
+    const ux = dx / d;
+    const uy = dy / d;
+    const { rx, ry } = radiiOf(node);
+    const t = 1 / Math.sqrt((ux * ux) / (rx * rx) + (uy * uy) / (ry * ry));
+    return { x: node.x + ux * t, y: node.y + uy * t };
+  }
+
+  function ellipseNorm(p, node) {
+    const { rx, ry } = radiiOf(node);
+    return Math.hypot((p.x - node.x) / rx, (p.y - node.y) / ry);
   }
 
   function moveRubber(clientX, clientY) {
@@ -767,31 +1159,125 @@
 
   function cancelLink() {
     state.linkFrom = null;
+    state.linkPlanted = false;
     els.viewport.classList.remove("linking");
     hideRubber();
+    els.rubber.classList.remove("planted");
     renderNodes();
+  }
+
+  function scheduleHover(id) {
+    clearTimeout(state.hoverTimer);
+    state.hoverTimer = setTimeout(() => showHover(id), 220);
+  }
+
+  function showHover(id) {
+    if (state.dragging || state.linkFrom || state.panning) return;
+    const n = state.nodes[id];
+    if (!n || !els.hovercard) return;
+    state.hoverId = id;
+    const st = STATUSES.find((s) => s.id === (n.status || "live"));
+    const bits = [typeLabel(n.type), st ? st.label : "Live"];
+    if (n.type === "character") bits.push(n.vitality || "alive");
+    const body = (n.description || "").trim();
+    const cond = n.type === "character" ? vitalIcon(n.vitality || "alive") : "";
+    els.hovercard.innerHTML = `<div class="hc-title">${cond}<span>${escapeHtml(n.title || "Untitled")}</span></div>
+      <div class="hc-meta">${escapeHtml(bits.join(" · "))}</div>
+      <div class="hc-body">${escapeHtml(body ? body.slice(0, 180) + (body.length > 180 ? "…" : "") : "No notes yet")}</div>`;
+    els.hovercard.hidden = false;
+    placeHover(state.pointer.x, state.pointer.y);
+  }
+
+  function placeHover(x, y) {
+    if (!els.hovercard || els.hovercard.hidden) return;
+    els.hovercard.style.left = x + 16 + "px";
+    els.hovercard.style.top = y + 16 + "px";
+  }
+
+  function hideHover() {
+    clearTimeout(state.hoverTimer);
+    state.hoverId = null;
+    if (els.hovercard) els.hovercard.hidden = true;
+  }
+
+  function fitView() {
+    const nodes = Object.values(state.nodes).filter(visibleNode);
+    const rail = 232;
+    const w = Math.max(els.viewport.clientWidth || window.innerWidth - rail, 640);
+    const h = Math.max(els.viewport.clientHeight || window.innerHeight, 480);
+    if (!nodes.length) {
+      state.view.scale = 1;
+      state.view.x = w / 2;
+      state.view.y = h / 2;
+      applyView();
+      persist();
+      return;
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of nodes) {
+      const r = radiusOf(n) + 24;
+      minX = Math.min(minX, n.x - r);
+      minY = Math.min(minY, n.y - r);
+      maxX = Math.max(maxX, n.x + r);
+      maxY = Math.max(maxY, n.y + r);
+    }
+    const bw = Math.max(maxX - minX, 200);
+    const bh = Math.max(maxY - minY, 200);
+    const padL = 40;
+    const padR = 40;
+    const padT = 64;
+    const padB = 40;
+    const scale = Math.min(1.25, Math.max(0.35, Math.min((w - padL - padR) / bw, (h - padT - padB) / bh)));
+    state.view.scale = scale;
+    state.view.x = padL + (w - padL - padR) / 2 - ((minX + maxX) / 2) * scale;
+    state.view.y = padT + (h - padT - padB) / 2 - ((minY + maxY) / 2) * scale;
+    applyView();
+    persist();
   }
 
   /* ---------- viewport input ---------- */
 
   function setupInput() {
     els.viewport.addEventListener("pointerdown", (ev) => {
-      if (ev.button !== 0 && ev.button !== 1) return;
+      if (ev.button !== 0 && ev.button !== 1 && ev.button !== 2) return;
       if (ev.target.closest(".node") || ev.target.closest("g.edge")) return;
       if (state.linkFrom) return;
+      hideHover();
+      const rect = els.viewport.getBoundingClientRect();
+      const pan = ev.button === 1 || ev.button === 2 || state.spaceDown;
       els.viewport.setPointerCapture(ev.pointerId);
-      state.panning = {
-        startX: ev.clientX,
-        startY: ev.clientY,
-        origX: state.view.x,
-        origY: state.view.y,
-        moved: false,
+      if (pan) {
+        state.panning = {
+          startX: ev.clientX,
+          startY: ev.clientY,
+          origX: state.view.x,
+          origY: state.view.y,
+          moved: false,
+        };
+        els.viewport.classList.add("panning");
+        return;
+      }
+      state.marquee = {
+        x0: ev.clientX - rect.left,
+        y0: ev.clientY - rect.top,
+        x1: ev.clientX - rect.left,
+        y1: ev.clientY - rect.top,
+        add: ev.shiftKey,
       };
-      els.viewport.classList.add("panning");
+      showMarquee();
     });
 
     els.viewport.addEventListener("pointermove", (ev) => {
+      state.pointer.x = ev.clientX;
+      state.pointer.y = ev.clientY;
       if (state.linkFrom) moveRubber(ev.clientX, ev.clientY);
+      if (state.marquee) {
+        const rect = els.viewport.getBoundingClientRect();
+        state.marquee.x1 = ev.clientX - rect.left;
+        state.marquee.y1 = ev.clientY - rect.top;
+        showMarquee();
+        return;
+      }
       if (!state.panning) return;
       const dx = ev.clientX - state.panning.startX;
       const dy = ev.clientY - state.panning.startY;
@@ -822,6 +1308,10 @@
     els.viewport.addEventListener("pointerup", (ev) => {
       if (state.linkFrom && !ev.target.closest(".node")) {
         cancelLink();
+      }
+      if (state.marquee) {
+        finishMarquee();
+        return;
       }
       if (state.panning) {
         const moved = state.panning.moved;
@@ -856,6 +1346,8 @@
       { passive: false }
     );
 
+    els.viewport.addEventListener("contextmenu", (ev) => ev.preventDefault());
+
     els.viewport.addEventListener("dblclick", (ev) => {
       if (ev.target.closest(".node") || ev.target.closest("g.edge")) return;
       const w = screenToWorld(ev.clientX, ev.clientY);
@@ -879,6 +1371,7 @@
       }
       if (ev.key === "Escape") {
         if (state.linkFrom) cancelLink();
+        else if (els.help && !els.help.hidden) els.help.hidden = true;
         else {
           state.highlightTag = null;
           deselect();
@@ -886,12 +1379,88 @@
         }
         return;
       }
+      if (ev.key === " ") {
+        state.spaceDown = true;
+        if (!typing) ev.preventDefault();
+      }
+      if (ev.key === "?" || (ev.shiftKey && ev.key === "/")) {
+        if (els.help) els.help.hidden = !els.help.hidden;
+        return;
+      }
       if (typing) return;
-      if ((ev.key === "Delete" || ev.key === "Backspace") && state.selectedId) {
+      if ((ev.key === "f" || ev.key === "F") && !ev.ctrlKey && !ev.metaKey) {
         ev.preventDefault();
-        deleteNode(state.selectedId);
+        fitView();
+        return;
+      }
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c") {
+        ev.preventDefault();
+        copySelection();
+        return;
+      }
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "v") {
+        ev.preventDefault();
+        pasteSelection();
+        return;
+      }
+      if ((ev.key === "Delete" || ev.key === "Backspace") && selectedSet().size) {
+        ev.preventDefault();
+        deleteSelected();
       }
     });
+    window.addEventListener("keyup", (ev) => {
+      if (ev.key === " ") state.spaceDown = false;
+    });
+  }
+
+  function showMarquee() {
+    if (!els.marquee || !state.marquee) return;
+    const m = state.marquee;
+    const x = Math.min(m.x0, m.x1);
+    const y = Math.min(m.y0, m.y1);
+    const w = Math.abs(m.x1 - m.x0);
+    const h = Math.abs(m.y1 - m.y0);
+    els.marquee.hidden = false;
+    els.marquee.style.left = x + "px";
+    els.marquee.style.top = y + "px";
+    els.marquee.style.width = w + "px";
+    els.marquee.style.height = h + "px";
+  }
+
+  function hideMarquee() {
+    state.marquee = null;
+    if (els.marquee) {
+      els.marquee.hidden = true;
+      els.marquee.style.width = "0";
+      els.marquee.style.height = "0";
+    }
+  }
+
+  function finishMarquee() {
+    const m = state.marquee;
+    hideMarquee();
+    if (!m) return;
+    const w = Math.abs(m.x1 - m.x0);
+    const h = Math.abs(m.y1 - m.y0);
+    if (w < 6 && h < 6) {
+      if (!m.add) {
+        state.highlightTag = null;
+        deselect();
+        renderRail();
+      }
+      return;
+    }
+    const rect = els.viewport.getBoundingClientRect();
+    const a = screenToWorld(rect.left + Math.min(m.x0, m.x1), rect.top + Math.min(m.y0, m.y1));
+    const b = screenToWorld(rect.left + Math.max(m.x0, m.x1), rect.top + Math.max(m.y0, m.y1));
+    const hit = Object.values(state.nodes).filter((n) => {
+      if (!visibleNode(n)) return false;
+      return n.x >= a.x && n.x <= b.x && n.y >= a.y && n.y <= b.y;
+    });
+    if (!m.add) state.selectedIds = new Set();
+    hit.forEach((n) => state.selectedIds.add(n.id));
+    state.selectedId = hit[0] ? hit[0].id : m.add ? state.selectedId : null;
+    render();
   }
 
   /* ---------- inspector fields ---------- */
@@ -902,6 +1471,18 @@
       opt.value = t.id;
       opt.textContent = t.label;
       els.inspType.appendChild(opt);
+    });
+    STATUSES.forEach((t) => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.label;
+      els.inspStatus.appendChild(opt);
+    });
+    VITALS.forEach((t) => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.label;
+      els.inspVital.appendChild(opt);
     });
 
     els.inspClose.addEventListener("click", () => {
@@ -940,7 +1521,28 @@
       pushHistory();
       updateNode(state.selectedId, { type: els.inspType.value });
     });
+    els.inspStatus.addEventListener("change", () => {
+      if (!state.selectedId) return;
+      pushHistory();
+      updateNode(state.selectedId, { status: els.inspStatus.value });
+    });
+    els.inspVital.addEventListener("change", () => {
+      if (!state.selectedId) return;
+      pushHistory();
+      updateNode(state.selectedId, { vitality: els.inspVital.value });
+    });
+    els.inspCloseThread.addEventListener("click", () => {
+      if (!state.selectedId) return;
+      pushHistory();
+      updateNode(state.selectedId, { status: "resolved" });
+      toast("Thread closed");
+    });
+    /* condition icon lives on the title, not in the dropdown row */
 
+    const syncNoteRules = () => {
+      els.inspDesc.style.backgroundPosition = "0 " + -els.inspDesc.scrollTop + "px";
+    };
+    els.inspDesc.addEventListener("scroll", syncNoteRules);
     els.inspDesc.addEventListener("focus", () => {
       if (!els.inspDesc._hist) {
         pushHistory();
@@ -954,6 +1556,7 @@
       if (!state.selectedId) return;
       state.nodes[state.selectedId].description = els.inspDesc.value;
       persist();
+      syncNoteRules();
     });
 
     els.inspTagInput.addEventListener("keydown", (ev) => {
@@ -975,8 +1578,7 @@
     });
 
     els.inspDelete.addEventListener("click", () => {
-      if (!state.selectedId) return;
-      deleteNode(state.selectedId);
+      deleteSelected();
     });
   }
 
@@ -1013,6 +1615,14 @@
       }
     });
 
+    if (els.btnNewPage) els.btnNewPage.addEventListener("click", addPage);
+    if (els.btnFit) els.btnFit.addEventListener("click", fitView);
+    if (els.btnHelp) {
+      els.btnHelp.addEventListener("click", () => {
+        if (!els.help) return;
+        els.help.hidden = !els.help.hidden;
+      });
+    }
     els.btnUndo.addEventListener("click", () => undo());
     els.btnRedo.addEventListener("click", () => redo());
 
@@ -1065,32 +1675,46 @@
   }
 
   function loadDemo() {
-    const n = (title, type, kind, x, y, tags, description) => {
+    const session1 = { id: "page-s1", title: "Session 1" };
+    const session2 = { id: "page-s2", title: "Session 2" };
+    state.pages = [session1, session2];
+    state.currentPageId = "all";
+    const n = (title, type, kind, x, y, tags, description, extra) => {
       const id = title.toLowerCase().replace(/\s+/g, "-");
-      state.nodes[id] = {
-        id,
-        title,
-        type,
-        kind,
-        x,
-        y,
-        tags: tags || [],
-        description: description || "",
-      };
+      state.nodes[id] = Object.assign(
+        {
+          id,
+          title,
+          type,
+          kind,
+          x,
+          y,
+          tags: tags || [],
+          description: description || "",
+          status: "live",
+          vitality: "alive",
+          seen: true,
+          pageId: session1.id,
+        },
+        extra || {}
+      );
       return id;
     };
-    const e = (a, b) => {
+    const e = (a, b, style) => {
       const id = uid();
-      state.edges[id] = { id, a, b };
+      state.edges[id] = { id, a, b, style: style || "solid" };
     };
     state.nodes = {};
     state.edges = {};
-    const jagger = n("Jagger", "character", "node", -280, -40, ["Republic"], "");
-    const tseren = n("Tseren", "character", "node", 160, -160, ["Republic"], "");
-    const sonny = n("Sonny", "character", "node", 210, 90, ["Raiders"], "");
-    const blackout = n("Blackout", "character", "node", -40, 80, ["Raiders"], "");
-    const tsurun = n("Tsurun", "location", "node", 40, 230, ["Raiders"], "Locked waystation on the ridge.");
-    const convoy = n("Convoy", "event", "node", 40, -20, [], "Convoy is ambushed on the salt road. Jagger, Tseren and Sonny are all on it.");
+    const jagger = n("Jagger", "character", "node", -280, -40, ["Republic"], "Pays his debts in favors.", { vitality: "alive" });
+    const tseren = n("Tseren", "character", "node", 160, -160, ["Republic"], "Thinks the convoy was a test.", { vitality: "compromised" });
+    const sonny = n("Sonny", "character", "node", 210, 90, ["Raiders"], "Last seen riding east.", { vitality: "missing" });
+    const blackout = n("Blackout", "character", "node", -40, 80, ["Raiders"], "Died holding the ridge.", { vitality: "dead", status: "resolved" });
+    const tsurun = n("Tsurun", "location", "node", 40, 230, ["Raiders"], "Locked waystation on the ridge.", { status: "resolved" });
+    const convoy = n("Convoy", "event", "node", 40, -20, ["Tag"], "Convoy is ambushed on the salt road. Jagger, Tseren and Sonny are all on it.");
+    const rumor = n("Salt ledger", "note", "node", -260, 160, ["Republic"], "Someone in the Republic keeps a second book.", { status: "rumor", seen: false });
+    const ghost = n("The third rider", "character", "node", 320, 220, ["Raiders"], "A name nobody will say.", { status: "ghost", seen: false, vitality: "missing", pageId: session2.id });
+    const missed = n("Ask the widow", "event", "node", -160, 240, [], "They never stopped at her house.", { status: "missed" });
     const friends = n("Friends", "note", "subnode", -80, -170, [], "");
     const debt = n("Debt", "note", "subnode", -70, -90, [], "");
     const war = n("War", "note", "subnode", 280, -40, [], "");
@@ -1105,6 +1729,9 @@
     e(war, sonny);
     e(blackout, sonny);
     e(tsurun, sonny);
+    e(jagger, rumor, "planted");
+    e(sonny, ghost, "planted");
+    e(jagger, missed);
     state.selectedId = convoy;
     state.highlightTag = null;
     state.hintHidden = true;
@@ -1127,11 +1754,16 @@
     setupInput();
     setupMenu();
     await restore();
+    normalizeBoard();
     const params = new URLSearchParams(location.search);
     if (params.get("demo") === "1") {
       loadDemo();
       const hl = params.get("tag");
       if (hl) state.highlightTag = hl.toLowerCase();
+      const page = params.get("page");
+      if (page) state.currentPageId = page;
+      const sel = params.get("select");
+      if (sel && state.nodes[sel]) state.selectedId = sel;
     }
     // center empty board
     if (!Object.keys(state.nodes).length && state.view.x === 0 && state.view.y === 0) {
@@ -1140,8 +1772,14 @@
     if (state.hintHidden) els.hint.classList.add("gone");
     render();
     requestAnimationFrame(() => {
-      if (new URLSearchParams(location.search).get("demo") === "1") centerCamera();
-      applyView();
+      const q = new URLSearchParams(location.search);
+      if (q.get("demo") === "1") fitView();
+      else applyView();
+      if (q.get("shot") === "hover") {
+        showHover(q.get("select") || "convoy");
+        placeHover(620, 360);
+      }
+      if (q.get("shot") === "help" && els.help) els.help.hidden = false;
     });
     els.viewport.focus();
     syncHistoryButtons();
