@@ -151,6 +151,40 @@
     return (TYPES.find((t) => t.id === id) || TYPES[4]).label;
   }
 
+  function labelSizeClass(title, kind) {
+    const len = String(title || "").length;
+    if (kind === "subnode") {
+      if (len > 22) return "label-xs";
+      if (len > 14) return "label-sm";
+      return "";
+    }
+    if (len > 32) return "label-xs";
+    if (len > 18) return "label-sm";
+    return "";
+  }
+
+  function paintNodeLabel(el, n) {
+    if (!el || !n) return;
+    const raw = n.title || "Untitled";
+    const cond =
+      n.kind !== "subnode" && n.type === "character"
+        ? vitalIcon(n.vitality || "alive") + " "
+        : "";
+    el.classList.remove("label-sm", "label-xs");
+    const size = labelSizeClass(raw, n.kind);
+    if (size) el.classList.add(size);
+    el.innerHTML = cond + escapeHtml(raw);
+    const host = el.closest(".node");
+    if (host) host.title = raw;
+  }
+
+  function autosizeInspectorTitle() {
+    const el = els.inspTitle;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 96) + "px";
+  }
+
   function fileSlug(name) {
     const s = String(name || "Prep Map").trim() || "Prep Map";
     return s.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").slice(0, 60);
@@ -788,17 +822,18 @@
         ]
           .filter(Boolean)
           .join(" ");
-        const title = escapeHtml(n.title || "Untitled");
+        const rawTitle = n.title || "Untitled";
+        const title = escapeHtml(rawTitle);
         const unread = n.seen === false ? `<span class="unread" title="Unread"></span>` : "";
         const icon = n.kind === "subnode" ? "" : ICONS[n.type] || ICONS.note;
         const cond =
           n.kind !== "subnode" && n.type === "character"
             ? vitalIcon(n.vitality || "alive") + " "
             : "";
-        return `<div class="${cls}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px">
+        return `<div class="${cls}" data-id="${n.id}" title="${escapeAttr(rawTitle)}" style="left:${n.x}px;top:${n.y}px">
           ${unread}
           ${icon}
-          <div class="label">${cond}${title}</div>
+          <div class="label ${labelSizeClass(rawTitle, n.kind)}">${cond}${title}</div>
         </div>`;
       })
       .join("");
@@ -955,6 +990,7 @@
     if (document.activeElement !== els.inspTitle) {
       els.inspTitle.value = n.title || "";
     }
+    autosizeInspectorTitle();
     if (els.inspTitleIcon) {
       const show = n.type === "character";
       els.inspTitleIcon.hidden = !show;
@@ -1815,13 +1851,19 @@
       const n = state.nodes[state.selectedId];
       n.title = els.inspTitle.value;
       const el = els.nodes.querySelector(`.node[data-id="${n.id}"] .label`);
-      if (el) el.textContent = n.title || "Untitled";
+      paintNodeLabel(el, n);
+      autosizeInspectorTitle();
       persist();
-      // rail names need refresh but not on every keystroke heavily
       clearTimeout(els.inspTitle._t);
       els.inspTitle._t = setTimeout(renderRail, 180);
     });
 
+    els.inspTitle.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        els.inspTitle.blur();
+      }
+    });
     els.inspTitle.addEventListener("focus", () => {
       if (!state.selectedId) return;
       // one undo unit for a rename session

@@ -194,19 +194,26 @@ g.edge:hover .edge-vis {
   max-width: 100%;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   margin-top: 4px;
   letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
+
+.node .label.label-sm { font-size: 12px; }
+.node .label.label-xs { font-size: 10px; line-height: 1.08; }
 
 .node.sub .label {
   font-size: 12px;
   font-weight: 500;
   font-style: italic;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   margin-top: 0;
 }
+.node.sub .label.label-sm { font-size: 11px; }
+.node.sub .label.label-xs { font-size: 9px; }
 
 .node .label .cond-icon {
   display: inline-block;
@@ -401,14 +408,15 @@ g.edge.tag-hot .edge-vis {
   height: 18px;
   flex: 0 0 auto;
   color: var(--ink);
+  margin-top: 4px;
 }
 .inspector-head .cond-icon svg { width: 18px; height: 18px; display: block; }
 
 .inspector-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding-right: 24px;
+  padding-right: 28px;
   border-bottom: 1.5px solid var(--ink);
   margin-bottom: 12px;
 }
@@ -418,10 +426,17 @@ g.edge.tag-hot .edge-vis {
   border: 0;
   background: transparent;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 18px;
+  line-height: 1.22;
   color: var(--ink);
   min-width: 0;
-  padding: 0 0 4px;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  padding: 0 0 6px;
+  min-height: 1.35em;
+  max-height: 5.1em;
+  field-sizing: content;
 }
 
 .inspector-title:focus { outline: none; }
