@@ -1918,15 +1918,30 @@
     els.btnRedo.addEventListener("click", () => redo());
 
     els.btnClear.addEventListener("click", () => {
-      if (!Object.keys(state.nodes).length) return;
+      const hasNodes = Object.keys(state.nodes).length > 0;
+      const hasExtraPages = (state.pages || []).length > 1;
+      const titled = (state.title || "") !== "New Map" && (state.title || "") !== "Prep Map";
+      if (!hasNodes && !hasExtraPages && !Object.keys(state.edges).length && !titled) return;
       if (!confirm("Clear this map? Export first if you may want it back.")) return;
       pushHistory();
       state.nodes = {};
       state.edges = {};
       state.selectedId = null;
+      state.selectedIds = new Set();
       state.highlightTag = null;
+      state.clipboard = null;
+      state.linkFrom = null;
+      const page = { id: uid(), title: "Session 1" };
+      state.pages = [page];
+      state.currentPageId = "all";
+      state.renamingPage = null;
+      state.title = "New Map";
+      syncMapTitle();
+      hideRubber();
       render();
       persist();
+      centerCamera();
+      applyView();
     });
   }
 
