@@ -1268,6 +1268,8 @@
     state.selectedIds = new Set();
     renderInspector();
     renderNodes();
+    renderEdges();
+    renderMinimap();
   }
 
   /* ---------- linking ---------- */
@@ -1705,8 +1707,14 @@
     });
 
     window.addEventListener("keydown", (ev) => {
-      const typing =
-        ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA" || ev.target.tagName === "SELECT";
+      const typing = (() => {
+        const t = ev.target;
+        if (!t) return false;
+        const tag = (t.tagName || "").toUpperCase();
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+        if (t.isContentEditable) return true;
+        return false;
+      })();
 
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z") {
         ev.preventDefault();
@@ -1733,11 +1741,11 @@
         state.spaceDown = true;
         if (!typing) ev.preventDefault();
       }
+      if (typing) return;
       if (ev.key === "?" || (ev.shiftKey && ev.key === "/")) {
         if (els.help) els.help.hidden = !els.help.hidden;
         return;
       }
-      if (typing) return;
       if ((ev.key === "f" || ev.key === "F") && !ev.ctrlKey && !ev.metaKey) {
         ev.preventDefault();
         fitView();
