@@ -35,7 +35,7 @@
 
   const VITAL_ICONS = {
     alive: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 13.2S2.8 9.6 2.8 6.2A2.8 2.8 0 0 1 8 4.6a2.8 2.8 0 0 1 5.2 1.6c0 3.4-5.2 7-5.2 7z"/></svg>`,
-    missing: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.4"/><path d="M8 5.2v.3M8 7.2V11"/></svg>`,
+    missing: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5.4 6.1c0-1.6 1.2-2.8 2.6-2.8s2.6 1.1 2.6 2.6c0 1.2-.7 1.9-1.6 2.4-.7.4-1 0.8-1 1.6"/><circle cx="8" cy="12.4" r="0.7" fill="currentColor" stroke="none"/></svg>`,
     compromised: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2.6 14.2 13H1.8L8 2.6z"/><path d="M8 6.6v3.1M8 11.4v.3"/></svg>`,
     dead: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7.2" r="3.6"/><path d="M5.4 6.6h.1M10.5 6.6h.1M5.8 8.4c.7.8 1.7 1.2 2.2 1.2s1.5-.4 2.2-1.2M4.6 11.4c1 .9 2.2 1.4 3.4 1.4s2.4-.5 3.4-1.4"/></svg>`,
   };
@@ -43,7 +43,11 @@
   const PENCIL = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.2 3.2 12.8 5.8 6 12.6H3.4V10z"/><path d="M9 4.4 11.6 7"/></svg>`;
 
   function vitalIcon(id) {
-    return `<span class="cond-icon" title="${escapeAttr(id || "alive")}">${VITAL_ICONS[id] || VITAL_ICONS.alive}</span>`;
+    const v = id || "alive";
+    if (v === "alive") return "";
+    const svg = VITAL_ICONS[v];
+    if (!svg) return "";
+    return `<span class="cond-icon cond-${v}" title="${escapeAttr(v)}">${svg}</span>`;
   }
 
   const LINK_MARK = `<svg class="mark" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.2 9.8 4.4 8a2.4 2.4 0 0 1 3.4-3.4l1.3 1.3"/><path d="M9.8 6.2 11.6 8a2.4 2.4 0 0 1-3.4 3.4L6.9 10.1"/></svg>`;
@@ -124,6 +128,7 @@
     hoverTimer: null,
     hoverId: null,
     focusId: null,
+    focusTimer: null,
     railQuery: "",
     tagSuggestI: 0,
     pointer: { x: 0, y: 0 },
@@ -956,6 +961,7 @@
       hideHover();
     });
     el.addEventListener("mouseenter", () => {
+      clearTimeout(state.focusTimer);
       state.focusId = id;
       applyFocusClasses();
       scheduleHover(id);
@@ -1002,9 +1008,9 @@
     }
     autosizeInspectorTitle();
     if (els.inspTitleIcon) {
-      const show = n.type === "character";
-      els.inspTitleIcon.hidden = !show;
-      if (show) els.inspTitleIcon.innerHTML = VITAL_ICONS[n.vitality || "alive"] || "";
+      const mark = n.type === "character" ? vitalIcon(n.vitality || "alive") : "";
+      els.inspTitleIcon.hidden = !mark;
+      els.inspTitleIcon.innerHTML = mark;
     }
     if (document.activeElement !== els.inspDesc) {
       els.inspDesc.value = n.description || "";
@@ -1401,10 +1407,12 @@
     clearTimeout(state.hoverTimer);
     state.hoverId = null;
     if (els.hovercard) els.hovercard.hidden = true;
-    if (state.focusId) {
+    clearTimeout(state.focusTimer);
+    state.focusTimer = setTimeout(() => {
+      if (!state.focusId) return;
       state.focusId = null;
       applyFocusClasses();
-    }
+    }, 180);
   }
 
   function applyFocusClasses() {
@@ -1412,8 +1420,8 @@
     const edgesRoot = els.edges;
     if (!nodesRoot || !edgesRoot) return;
     if (state.highlightTag) {
-      nodesRoot.querySelectorAll(".node").forEach((el) => el.classList.remove("nbr-hot"));
-      edgesRoot.querySelectorAll("g.edge").forEach((g) => g.classList.remove("nbr-hot"));
+      nodesRoot.querySelectorAll(".node").forEach((el) => el.classList.remove("nbr-hot", "nbr-dim"));
+      edgesRoot.querySelectorAll("g.edge").forEach((g) => g.classList.remove("nbr-hot", "nbr-dim"));
       return;
     }
     const fid = state.focusId && state.nodes[state.focusId] ? state.focusId : null;
@@ -1421,14 +1429,14 @@
     nodesRoot.querySelectorAll(".node").forEach((el) => {
       const on = !!(hot && hot.has(el.dataset.id));
       el.classList.toggle("nbr-hot", on);
-      el.classList.toggle("dimmed", !!(hot && !on));
+      el.classList.toggle("nbr-dim", !!(hot && !on));
     });
     edgesRoot.querySelectorAll("g.edge").forEach((g) => {
       const e = state.edges[g.dataset.id];
       if (!e) return;
       const on = !!(hot && hot.has(e.a) && hot.has(e.b));
       g.classList.toggle("nbr-hot", on);
-      g.classList.toggle("dimmed", !!(hot && !on));
+      g.classList.toggle("nbr-dim", !!(hot && !on));
     });
   }
 

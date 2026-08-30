@@ -121,6 +121,7 @@ html, body {
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
+  transition: opacity 0.28s ease;
 }
 
 .edge-hit:hover + .edge-vis,
@@ -162,6 +163,7 @@ g.edge:hover .edge-vis {
   user-select: none;
   cursor: pointer;
   color: var(--ink);
+  transition: opacity 0.28s ease, filter 0.28s ease;
 }
 
 .node.sub {
@@ -198,6 +200,12 @@ g.edge:hover .edge-vis {
   flex: 0 0 auto;
   color: var(--ink);
 }
+.node .badge-row .cond-icon.cond-dead,
+.inspector-head .cond-icon.cond-dead { color: #8b3a2a; }
+.node .badge-row .cond-icon.cond-missing,
+.inspector-head .cond-icon.cond-missing { color: #c43a2a; }
+.node .badge-row .cond-icon.cond-compromised,
+.inspector-head .cond-icon.cond-compromised { color: #b06a12; }
 .node .badge-row .cond-icon svg {
   width: 26px;
   height: 26px;
@@ -266,6 +274,22 @@ g.edge:hover .edge-vis {
 }
 .node.dimmed:hover {
   box-shadow: none;
+}
+
+.node.nbr-dim {
+  opacity: 0.38;
+  filter: grayscale(0.16);
+}
+.node.nbr-hot {
+  opacity: 1;
+  filter: none;
+}
+
+g.edge.nbr-dim .edge-vis {
+  opacity: 0.24;
+}
+g.edge.nbr-hot .edge-vis {
+  opacity: 1;
 }
 
 .edge-vis.dimmed,
