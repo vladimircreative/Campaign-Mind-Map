@@ -2,9 +2,9 @@
 
 A sheet of paper for campaign prep. Characters, places, events, the thread you planted three sessions ago and forgot.
 
-Desktop browser. Wide window. Nothing leaves the machine — close the tab, open it next week, the board is still there. Phone will just tell you to use a bigger screen. That’s on purpose.
+Inspired by Pathologic 2 mind map. 
 
-Four files: `index.html`, `styles.css`, `app.js`, this. No install, no login, no cloud.
+Four files: `index.html`, `styles.css`, `app.js`, this one. No install, no login, no cloud. Desktop-only.
 
 ---
 
