@@ -1442,9 +1442,9 @@
 
   function fitView() {
     const nodes = Object.values(state.nodes).filter(visibleNode);
-    const rail = 232;
-    const w = Math.max(els.viewport.clientWidth || window.innerWidth - rail, 640);
-    const h = Math.max(els.viewport.clientHeight || window.innerHeight, 480);
+    const rect = els.viewport.getBoundingClientRect();
+    const w = Math.max(rect.width || els.viewport.clientWidth || 800, 200);
+    const h = Math.max(rect.height || els.viewport.clientHeight || 600, 200);
     if (!nodes.length) {
       state.view.scale = 1;
       state.view.x = w / 2;
@@ -1455,24 +1455,26 @@
     }
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const n of nodes) {
-      const r = radiusOf(n) + 24;
+      const r = radiusOf(n) + 28;
       minX = Math.min(minX, n.x - r);
       minY = Math.min(minY, n.y - r);
       maxX = Math.max(maxX, n.x + r);
       maxY = Math.max(maxY, n.y + r);
     }
-    const bw = Math.max(maxX - minX, 200);
-    const bh = Math.max(maxY - minY, 200);
+    const bw = Math.max(maxX - minX, 80);
+    const bh = Math.max(maxY - minY, 80);
     const insp = els.inspector && !els.inspector.hidden ? els.inspector.getBoundingClientRect().width : 0;
     const help = els.help && !els.help.hidden ? els.help.getBoundingClientRect().width : 0;
-    const padL = 48 + Math.max(insp, help);
-    const padR = 48;
-    const padT = 72;
-    const padB = 48;
-    const scale = Math.min(1.25, Math.max(0.35, Math.min((w - padL - padR) / bw, (h - padT - padB) / bh)));
-    state.view.scale = scale;
-    state.view.x = padL + (w - padL - padR) / 2 - ((minX + maxX) / 2) * scale;
-    state.view.y = padT + (h - padT - padB) / 2 - ((minY + maxY) / 2) * scale;
+    const padL = 36 + Math.max(insp, help);
+    const padR = 36;
+    const padT = 64;
+    const padB = 36;
+    const availW = Math.max(120, w - padL - padR);
+    const availH = Math.max(120, h - padT - padB);
+    const scale = Math.min(1.25, availW / bw, availH / bh);
+    state.view.scale = Math.max(0.08, scale);
+    state.view.x = padL + availW / 2 - ((minX + maxX) / 2) * state.view.scale;
+    state.view.y = padT + availH / 2 - ((minY + maxY) / 2) * state.view.scale;
     applyView();
     persist();
   }
@@ -1756,7 +1758,7 @@
         const worldX = (sx - state.view.x) / state.view.scale;
         const worldY = (sy - state.view.y) / state.view.scale;
         const factor = ev.deltaY < 0 ? 1.08 : 1 / 1.08;
-        const next = Math.min(2.6, Math.max(0.22, state.view.scale * factor));
+        const next = Math.min(2.6, Math.max(0.08, state.view.scale * factor));
         state.view.scale = next;
         state.view.x = sx - worldX * next;
         state.view.y = sy - worldY * next;
@@ -1819,6 +1821,7 @@
         fitView();
         return;
       }
+      
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c") {
         ev.preventDefault();
         copySelection();
