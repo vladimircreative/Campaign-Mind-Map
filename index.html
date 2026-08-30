@@ -55,7 +55,8 @@
       <label class="field-label" for="insp-tag-input">Tags</label>
       <div class="tag-editor">
         <div id="insp-tags" class="tag-chips"></div>
-        <input id="insp-tag-input" type="text" maxlength="32" placeholder="Add tag and press Enter" />
+        <input id="insp-tag-input" type="text" maxlength="32" placeholder="Tag or pick one" autocomplete="off" />
+        <ul id="insp-tag-suggest" class="tag-suggest" hidden></ul>
       </div>
 
       <label class="field-label" for="insp-desc">Notes</label>
@@ -81,6 +82,7 @@
       </div>
       <div class="rail-section">
         <div class="rail-section-head"><span>Tags</span></div>
+        <input id="rail-search" class="rail-search" type="search" maxlength="48" placeholder="Find a name…" />
         <div id="tag-list" class="tag-list">
           <p class="rail-empty">No tags yet. Add them in a node’s notes panel.</p>
         </div>

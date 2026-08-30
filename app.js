@@ -88,6 +88,8 @@
     inspLinks: $("insp-links"),
     inspTags: $("insp-tags"),
     inspTagInput: $("insp-tag-input"),
+    inspTagSuggest: $("insp-tag-suggest"),
+    railSearch: $("rail-search"),
     inspDesc: $("insp-desc"),
     inspClose: $("inspector-close"),
     inspDelete: $("insp-delete"),
@@ -121,6 +123,9 @@
     linkPlanted: false,
     hoverTimer: null,
     hoverId: null,
+    focusId: null,
+    railQuery: "",
+    tagSuggestI: 0,
     pointer: { x: 0, y: 0 },
     selectedIds: new Set(),
     clipboard: null,
@@ -166,14 +171,10 @@
   function paintNodeLabel(el, n) {
     if (!el || !n) return;
     const raw = n.title || "Untitled";
-    const cond =
-      n.kind !== "subnode" && n.type === "character"
-        ? vitalIcon(n.vitality || "alive") + " "
-        : "";
     el.classList.remove("label-sm", "label-xs");
     const size = labelSizeClass(raw, n.kind);
     if (size) el.classList.add(size);
-    el.innerHTML = cond + escapeHtml(raw);
+    el.textContent = raw;
     const host = el.closest(".node");
     if (host) host.title = raw;
   }
@@ -686,6 +687,7 @@
     applyView();
     renderEdges();
     renderNodes();
+    applyFocusClasses();
     renderInspector();
     renderRail();
     if (!state.linkFrom) hideRubber();
@@ -825,15 +827,19 @@
         const rawTitle = n.title || "Untitled";
         const title = escapeHtml(rawTitle);
         const unread = n.seen === false ? `<span class="unread" title="Unread"></span>` : "";
-        const icon = n.kind === "subnode" ? "" : ICONS[n.type] || ICONS.note;
+        const typeIcon = n.kind === "subnode" ? "" : ICONS[n.type] || ICONS.note;
         const cond =
           n.kind !== "subnode" && n.type === "character"
-            ? vitalIcon(n.vitality || "alive") + " "
+            ? vitalIcon(n.vitality || "alive")
             : "";
+        const badge =
+          n.kind === "subnode"
+            ? ""
+            : `<div class="badge-row">${typeIcon}${cond}</div>`;
         return `<div class="${cls}" data-id="${n.id}" title="${escapeAttr(rawTitle)}" style="left:${n.x}px;top:${n.y}px">
           ${unread}
-          ${icon}
-          <div class="label ${labelSizeClass(rawTitle, n.kind)}">${cond}${title}</div>
+          ${badge}
+          <div class="label ${labelSizeClass(rawTitle, n.kind)}">${title}</div>
         </div>`;
       })
       .join("");
@@ -949,7 +955,11 @@
       el.classList.remove("on-ring");
       hideHover();
     });
-    el.addEventListener("mouseenter", () => scheduleHover(id));
+    el.addEventListener("mouseenter", () => {
+      state.focusId = id;
+      applyFocusClasses();
+      scheduleHover(id);
+    });
     el.addEventListener("mousemove", (ev) => placeHover(ev.clientX, ev.clientY));
     el.addEventListener("dblclick", (ev) => {
       ev.stopPropagation();
@@ -1060,28 +1070,39 @@
 
   function renderRail() {
     renderPages();
+    const q = (state.railQuery || "").trim().toLowerCase();
     const groups = {};
+    const untagged = [];
     for (const n of Object.values(state.nodes)) {
       if (!visibleNode(n)) continue;
+      let tagged = false;
       for (const raw of n.tags || []) {
         const t = raw.trim();
         if (!t) continue;
+        tagged = true;
         const key = normTag(t);
         if (!groups[key]) groups[key] = { label: t, nodes: [] };
         groups[key].nodes.push(n);
       }
+      if (q && !tagged && (n.title || "").toLowerCase().includes(q)) untagged.push(n);
     }
     const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-    if (!keys.length) {
-      els.tagList.innerHTML = `<p class="rail-empty">No tags yet. Add them in a node’s notes panel.</p>`;
+    if (!keys.length && !untagged.length) {
+      els.tagList.innerHTML = q
+        ? `<p class="rail-empty">No names match.</p>`
+        : `<p class="rail-empty">No tags yet. Add them in a node’s notes panel.</p>`;
       return;
     }
-    els.tagList.innerHTML = keys
+    const nameHit = (n) => !q || (n.title || "").toLowerCase().includes(q);
+    const tagHit = (label) => !q || label.toLowerCase().includes(q);
+    let html = keys
       .map((k) => {
         const g = groups[k];
         const members = g.nodes
           .slice()
+          .filter((n) => tagHit(g.label) || nameHit(n))
           .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        if (!members.length) return "";
         const active = state.highlightTag === k ? "active" : "";
         return `<div class="tag-group ${active}" data-tag="${escapeAttr(k)}">
           <div class="tag-group-title" data-tag="${escapeAttr(k)}"><span class="tag-hash">#</span>${escapeHtml(g.label.toUpperCase())}</div>
@@ -1091,6 +1112,16 @@
         </div>`;
       })
       .join("");
+    if (untagged.length) {
+      html += `<div class="tag-group">
+        <div class="tag-group-title"><span class="tag-hash">#</span>UNTAGGED</div>
+        <ul>${untagged
+          .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+          .map((n) => `<li data-id="${n.id}">${escapeHtml(n.title || "Untitled")}</li>`)
+          .join("")}</ul>
+      </div>`;
+    }
+    els.tagList.innerHTML = html || `<p class="rail-empty">No names match.</p>`;
 
     els.tagList.querySelectorAll(".tag-group-title").forEach((el) => {
       el.addEventListener("click", () => selectTag(el.dataset.tag));
@@ -1370,6 +1401,35 @@
     clearTimeout(state.hoverTimer);
     state.hoverId = null;
     if (els.hovercard) els.hovercard.hidden = true;
+    if (state.focusId) {
+      state.focusId = null;
+      applyFocusClasses();
+    }
+  }
+
+  function applyFocusClasses() {
+    const nodesRoot = els.nodes;
+    const edgesRoot = els.edges;
+    if (!nodesRoot || !edgesRoot) return;
+    if (state.highlightTag) {
+      nodesRoot.querySelectorAll(".node").forEach((el) => el.classList.remove("nbr-hot"));
+      edgesRoot.querySelectorAll("g.edge").forEach((g) => g.classList.remove("nbr-hot"));
+      return;
+    }
+    const fid = state.focusId && state.nodes[state.focusId] ? state.focusId : null;
+    const hot = fid ? new Set([fid, ...neighbors(fid)]) : null;
+    nodesRoot.querySelectorAll(".node").forEach((el) => {
+      const on = !!(hot && hot.has(el.dataset.id));
+      el.classList.toggle("nbr-hot", on);
+      el.classList.toggle("dimmed", !!(hot && !on));
+    });
+    edgesRoot.querySelectorAll("g.edge").forEach((g) => {
+      const e = state.edges[g.dataset.id];
+      if (!e) return;
+      const on = !!(hot && hot.has(e.a) && hot.has(e.b));
+      g.classList.toggle("nbr-hot", on);
+      g.classList.toggle("dimmed", !!(hot && !on));
+    });
   }
 
   function fitView() {
@@ -1928,22 +1988,46 @@
       syncNoteRules();
     });
 
+    els.inspTagInput.addEventListener("focus", () => {
+      state.tagSuggestI = 0;
+      renderTagSuggest();
+    });
+    els.inspTagInput.addEventListener("input", () => {
+      state.tagSuggestI = 0;
+      renderTagSuggest();
+    });
     els.inspTagInput.addEventListener("keydown", (ev) => {
-      if (ev.key !== "Enter") return;
-      ev.preventDefault();
-      const n = state.nodes[state.selectedId];
-      if (!n) return;
-      const tag = els.inspTagInput.value.trim().replace(/^#/, "");
-      if (!tag) return;
-      if (n.tags.some((t) => normTag(t) === normTag(tag))) {
-        els.inspTagInput.value = "";
+      const box = els.inspTagSuggest;
+      const items = box && !box.hidden ? [...box.querySelectorAll("li")] : [];
+      if (ev.key === "ArrowDown" && items.length) {
+        ev.preventDefault();
+        state.tagSuggestI = (state.tagSuggestI + 1) % items.length;
+        renderTagSuggest();
         return;
       }
-      pushHistory();
-      n.tags = [...n.tags, tag];
-      els.inspTagInput.value = "";
-      render();
-      persist();
+      if (ev.key === "ArrowUp" && items.length) {
+        ev.preventDefault();
+        state.tagSuggestI = (state.tagSuggestI - 1 + items.length) % items.length;
+        renderTagSuggest();
+        return;
+      }
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        hideTagSuggest();
+        els.inspTagInput.blur();
+        return;
+      }
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        if (items.length) {
+          const pick = items[state.tagSuggestI] || items[0];
+          els.inspTagInput.value = pick.dataset.tag || els.inspTagInput.value;
+        }
+        commitTagInput();
+      }
+    });
+    els.inspTagInput.addEventListener("blur", () => {
+      setTimeout(commitTagInput, 0);
     });
 
     els.inspDelete.addEventListener("click", () => {
@@ -2000,6 +2084,22 @@
       }
     });
 
+    if (els.railSearch) {
+      els.railSearch.addEventListener("input", () => {
+        state.railQuery = els.railSearch.value;
+        renderRail();
+      });
+      els.railSearch.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter") return;
+        ev.preventDefault();
+        const first = els.tagList && els.tagList.querySelector("li[data-id]");
+        if (!first) return;
+        const id = first.dataset.id;
+        focusNode(id);
+        selectNode(id);
+      });
+    }
+
     if (els.btnNewPage) els.btnNewPage.addEventListener("click", addPage);
     if (els.btnFit) els.btnFit.addEventListener("click", fitView);
     if (els.btnHelp) {
@@ -2055,6 +2155,85 @@
 
   function normTag(s) {
     return String(s).trim().toLowerCase();
+  }
+
+  function allKnownTags() {
+    const map = new Map();
+    for (const n of Object.values(state.nodes)) {
+      for (const raw of n.tags || []) {
+        const t = String(raw).trim().replace(/^#/, "");
+        if (!t) continue;
+        const k = normTag(t);
+        if (!map.has(k)) map.set(k, t);
+      }
+    }
+    return [...map.values()].sort((a, b) => a.localeCompare(b));
+  }
+
+  function hideTagSuggest() {
+    if (!els.inspTagSuggest) return;
+    els.inspTagSuggest.hidden = true;
+    els.inspTagSuggest.innerHTML = "";
+  }
+
+  function renderTagSuggest() {
+    const box = els.inspTagSuggest;
+    const input = els.inspTagInput;
+    if (!box || !input) return;
+    const n = state.selectedId ? state.nodes[state.selectedId] : null;
+    if (!n) {
+      hideTagSuggest();
+      return;
+    }
+    const q = input.value.trim().replace(/^#/, "");
+    const have = new Set((n.tags || []).map(normTag));
+    const all = allKnownTags().filter((t) => !have.has(normTag(t)));
+    const qn = normTag(q);
+    const hits = q
+      ? all.filter((t) => normTag(t).includes(qn))
+      : all;
+    const exact = q && hits.some((t) => normTag(t) === qn);
+    const rows = [];
+    hits.forEach((t, i) => {
+      rows.push(`<li data-tag="${escapeAttr(t)}" class="${i === state.tagSuggestI ? "on" : ""}">#${escapeHtml(t)}</li>`);
+    });
+    if (q && !exact) {
+      const i = hits.length;
+      rows.push(
+        `<li data-tag="${escapeAttr(q)}" data-create="1" class="${i === state.tagSuggestI ? "on" : ""}">Create #${escapeHtml(q)}</li>`
+      );
+    }
+    if (!rows.length) {
+      hideTagSuggest();
+      return;
+    }
+    if (state.tagSuggestI >= rows.length) state.tagSuggestI = 0;
+    box.innerHTML = rows.join("");
+    box.hidden = false;
+    box.querySelectorAll("li").forEach((li) => {
+      li.addEventListener("mousedown", (ev) => {
+        ev.preventDefault();
+        input.value = li.dataset.tag || "";
+        commitTagInput();
+      });
+    });
+  }
+
+  function commitTagInput() {
+    const n = state.selectedId ? state.nodes[state.selectedId] : null;
+    if (!n || !els.inspTagInput) {
+      hideTagSuggest();
+      return;
+    }
+    const tag = els.inspTagInput.value.trim().replace(/^#/, "");
+    hideTagSuggest();
+    els.inspTagInput.value = "";
+    if (!tag) return;
+    if ((n.tags || []).some((t) => normTag(t) === normTag(tag))) return;
+    pushHistory();
+    n.tags = [...(n.tags || []), tag];
+    render();
+    persist();
   }
 
   function hideHint(silent) {
